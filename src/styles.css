@@ -1,0 +1,1346 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  /* Wii System Menu palette — soft neutrals + sky blue accent */
+  --color-wii-bg: #d8dde3;
+  --color-wii-bg-deep: #c5ccd6;
+  --color-wii-bg-soft: #e8ecf1;
+  --color-wii-surface: #f4f6f8;
+  --color-wii-tile: #ffffff;
+  --color-wii-tile-edge: #b8c0cc;
+  --color-wii-fg: #2a3140;
+  --color-wii-muted: #6b7585;
+  --color-wii-subtle: #9aa3b2;
+  --color-wii-accent: #3a8fd6;
+  --color-wii-accent-soft: #6eb6ef;
+  --color-wii-accent-deep: #1f6fb8;
+  --color-wii-ring: #4aa3e8;
+  --color-wii-bar: #eef1f5;
+  --color-wii-bar-edge: #aab4c2;
+  --color-wii-shadow: rgb(70 90 120 / 0.18);
+  --color-wii-glow: rgb(90 170 240 / 0.45);
+
+  /* Shop Channel chrome */
+  --color-shop-sky: #e8f4fc;
+  --color-shop-sky-deep: #cfe6f7;
+  --color-shop-panel: #f7fbfe;
+  --color-shop-line: #9ec4e0;
+  --color-shop-cta: #3a8fd6;
+  --color-shop-cta-deep: #1f6fb8;
+
+  --font-wii: "Segoe UI", "Helvetica Neue", "Nunito Sans", system-ui, sans-serif;
+  --font-wii-display: "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+
+  --radius-tile: 14px;
+  --radius-tile-inner: 10px;
+  --radius-bar: 999px;
+  --radius-modal: 22px;
+
+  --shadow-tile: 0 4px 10px rgb(70 90 120 / 0.14), 0 1px 2px rgb(70 90 120 / 0.08);
+  --shadow-tile-hover: 0 14px 28px rgb(70 90 120 / 0.22), 0 4px 8px rgb(70 90 120 / 0.12);
+  --shadow-bar: 0 2px 8px rgb(70 90 120 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.85);
+
+  --motion-quick: 150ms;
+  --motion-fast: 220ms;
+  --motion-medium: 320ms;
+  --ease-wii: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100%;
+    font-family: var(--font-wii);
+    color: var(--color-wii-fg);
+    background: var(--color-wii-bg);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-wii-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* Ambient Wii backdrop */
+.wii-stage {
+  position: relative;
+  min-height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 18%, #f2f5f8 0%, transparent 55%),
+    radial-gradient(ellipse 90% 70% at 12% 88%, rgb(180 200 220 / 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 90% 78%, rgb(190 205 220 / 0.4) 0%, transparent 48%),
+    linear-gradient(180deg, #e4e9ef 0%, #d0d7e0 48%, #c4ccd6 100%);
+}
+
+.wii-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 42%, rgb(255 255 255 / 0.35) 0%, transparent 42%),
+    radial-gradient(ellipse at center, transparent 55%, rgb(90 110 140 / 0.12) 100%);
+  z-index: 0;
+}
+
+/* Soft floating light orbs */
+.wii-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(40px);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: wii-drift 18s var(--ease-wii) infinite alternate;
+}
+
+.wii-orb-a {
+  width: min(40vw, 320px);
+  height: min(40vw, 320px);
+  top: 8%;
+  left: 6%;
+  background: #cfe4f8;
+  animation-duration: 22s;
+}
+
+.wii-orb-b {
+  width: min(34vw, 280px);
+  height: min(34vw, 280px);
+  bottom: 12%;
+  right: 8%;
+  background: #d8e0ea;
+  animation-duration: 26s;
+  animation-delay: -6s;
+}
+
+.wii-orb-c {
+  width: min(28vw, 220px);
+  height: min(28vw, 220px);
+  top: 42%;
+  left: 48%;
+  background: #e8eef5;
+  animation-duration: 20s;
+  animation-delay: -3s;
+}
+
+@keyframes wii-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(18px, -14px, 0) scale(1.06);
+  }
+}
+
+/* Channel tile shell */
+.wii-tile {
+  position: relative;
+  border: none;
+  padding: 0;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f5f8 100%);
+  border-radius: var(--radius-tile);
+  box-shadow: var(--shadow-tile);
+  overflow: hidden;
+  transform: translateZ(0);
+  transition:
+    transform var(--motion-fast) var(--ease-wii),
+    box-shadow var(--motion-fast) var(--ease-wii);
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wii-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1.5px var(--color-wii-tile-edge);
+  pointer-events: none;
+  transition: box-shadow var(--motion-quick) var(--ease-wii);
+}
+
+.wii-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.55) 0%, transparent 42%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wii-tile:hover,
+.wii-tile[data-focused="true"] {
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: var(--shadow-tile-hover);
+  z-index: 3;
+}
+
+.wii-tile:hover::after,
+.wii-tile[data-focused="true"]::after {
+  box-shadow:
+    inset 0 0 0 2.5px var(--color-wii-ring),
+    0 0 0 3px rgb(74 163 232 / 0.28);
+}
+
+.wii-tile:active {
+  transform: translateY(-1px) scale(0.98);
+  transition-duration: 80ms;
+}
+
+.wii-tile-empty {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.35) 0%, rgb(240 244 248 / 0.28) 100%);
+  box-shadow: none;
+}
+
+.wii-tile-empty::after {
+  box-shadow: inset 0 0 0 1.5px rgb(160 172 188 / 0.45);
+}
+
+.wii-tile-empty:hover,
+.wii-tile-empty[data-focused="true"] {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 18px rgb(70 90 120 / 0.1);
+}
+
+/* Disc channel special */
+.wii-tile-disc .wii-tile-face {
+  background: radial-gradient(circle at 50% 42%, #f8fafc 0%, #e8eef5 70%, #d5dde8 100%);
+}
+
+/* Bottom bar */
+.wii-bottom-bar {
+  background: linear-gradient(180deg, #f8fafc 0%, #e6ebf1 55%, #dbe1e9 100%);
+  border-radius: 18px 18px 0 0;
+  box-shadow:
+    0 -2px 16px rgb(70 90 120 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+  border-top: 1px solid rgb(255 255 255 / 0.7);
+}
+
+.wii-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  border: none;
+  border-radius: var(--radius-bar);
+  background: linear-gradient(180deg, #ffffff 0%, #eef2f6 100%);
+  color: var(--color-wii-fg);
+  box-shadow:
+    0 2px 6px rgb(70 90 120 / 0.12),
+    inset 0 0 0 1px rgb(160 172 188 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition:
+    transform var(--motion-quick) var(--ease-wii),
+    box-shadow var(--motion-quick) var(--ease-wii),
+    background var(--motion-quick) var(--ease-wii);
+}
+
+.wii-bar-btn:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px rgb(70 90 120 / 0.16),
+    inset 0 0 0 1.5px var(--color-wii-accent-soft),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+}
+
+.wii-bar-btn:active {
+  transform: scale(0.97);
+}
+
+.wii-bar-btn[data-active="true"] {
+  background: linear-gradient(180deg, #e8f3fc 0%, #d4e8f8 100%);
+  box-shadow:
+    0 2px 8px rgb(58 143 214 / 0.2),
+    inset 0 0 0 1.5px var(--color-wii-accent);
+}
+
+/* Page arrows */
+.wii-page-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #ffffff 0%, #e8eef5 100%);
+  color: var(--color-wii-accent-deep);
+  box-shadow:
+    0 3px 10px rgb(70 90 120 / 0.16),
+    inset 0 0 0 1.5px rgb(160 172 188 / 0.5);
+  transition:
+    transform var(--motion-quick) var(--ease-wii),
+    opacity var(--motion-quick) var(--ease-wii);
+  flex-shrink: 0;
+}
+
+.wii-page-btn:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.wii-page-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+/* Page dots */
+.wii-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  background: rgb(120 135 155 / 0.35);
+  transition:
+    transform var(--motion-quick) var(--ease-wii),
+    background var(--motion-quick) var(--ease-wii);
+}
+
+.wii-dot[data-active="true"] {
+  background: var(--color-wii-accent);
+  transform: scale(1.25);
+  box-shadow: 0 0 0 3px rgb(74 163 232 / 0.22);
+}
+
+/* Modal / channel open */
+.wii-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(40 55 75 / 0.42);
+  backdrop-filter: blur(6px);
+  animation: wii-fade-in var(--motion-fast) var(--ease-wii);
+}
+
+.wii-modal {
+  position: relative;
+  width: min(520px, calc(100vw - 2rem));
+  border-radius: var(--radius-modal);
+  background: linear-gradient(180deg, #ffffff 0%, #eef2f6 100%);
+  box-shadow:
+    0 24px 60px rgb(40 55 75 / 0.28),
+    inset 0 0 0 1px rgb(180 190 205 / 0.6);
+  overflow: hidden;
+  animation: wii-modal-in var(--motion-medium) var(--ease-pop);
+}
+
+.wii-modal-hero {
+  position: relative;
+  height: 180px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.wii-modal-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.2) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.wii-primary-btn {
+  min-height: 48px;
+  min-width: 140px;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-bar);
+  background: linear-gradient(180deg, #5eb0ef 0%, #2f86d0 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 4px 14px rgb(47 134 208 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.35);
+  transition: transform var(--motion-quick) var(--ease-wii), filter var(--motion-quick) var(--ease-wii);
+}
+
+.wii-primary-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.wii-primary-btn:active {
+  transform: scale(0.98);
+}
+
+.wii-secondary-btn {
+  min-height: 48px;
+  min-width: 120px;
+  padding: 0.7rem 1.35rem;
+  border: none;
+  border-radius: var(--radius-bar);
+  background: linear-gradient(180deg, #ffffff 0%, #e8edf3 100%);
+  color: var(--color-wii-fg);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  box-shadow:
+    0 2px 8px rgb(70 90 120 / 0.12),
+    inset 0 0 0 1px rgb(160 172 188 / 0.55);
+  transition: transform var(--motion-quick) var(--ease-wii);
+}
+
+.wii-secondary-btn:hover {
+  transform: translateY(-1px);
+}
+
+.wii-secondary-btn:active {
+  transform: scale(0.98);
+}
+
+/* Custom Wii pointer */
+.wii-pointer {
+  position: fixed;
+  z-index: 100;
+  width: 36px;
+  height: 36px;
+  pointer-events: none;
+  transform: translate(-4px, -2px);
+  filter: drop-shadow(0 2px 4px rgb(30 50 80 / 0.35));
+  transition: opacity 120ms ease;
+  will-change: left, top;
+}
+
+.wii-pointer-hidden {
+  opacity: 0;
+}
+
+/* Channel face art */
+.wii-tile-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.3rem 0.4rem;
+  z-index: 1;
+  gap: 0.15rem;
+}
+
+.wii-tile-label {
+  font-size: clamp(0.55rem, 1.55vw, 0.78rem);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  color: var(--color-wii-fg);
+  text-align: center;
+  line-height: 1.15;
+  max-width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  padding: 0 0.1rem;
+}
+
+/* Clock */
+.wii-clock {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--color-wii-fg);
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.7);
+}
+
+/* Settings panel */
+.wii-settings-panel {
+  background: linear-gradient(180deg, #f8fafc 0%, #e8eef5 100%);
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgb(160 172 188 / 0.4);
+}
+
+.wii-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c5d0dc, #a8b6c6);
+  outline: none;
+}
+
+.wii-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff, #e4ebf3);
+  border: 2px solid var(--color-wii-accent);
+  box-shadow: 0 2px 6px rgb(70 90 120 / 0.2);
+  cursor: pointer;
+}
+
+/* Channel running view */
+.wii-channel-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  animation: wii-fade-in var(--motion-medium) var(--ease-wii);
+}
+
+.wii-channel-screen[data-shop="true"] {
+  background: linear-gradient(180deg, #f4f9fd 0%, #dceef9 45%, #c8e0f2 100%) !important;
+}
+
+.wii-channel-screen[data-shop="true"] > main {
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+@keyframes wii-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes wii-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes wii-spin-disc {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wii-disc-spin {
+  animation: wii-spin-disc 8s linear infinite;
+}
+
+@keyframes wii-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+.wii-breathe {
+  animation: wii-breathe 3.2s var(--ease-wii) infinite;
+}
+
+/* Hide system cursor when custom pointer is active (desktop) */
+.wii-stage[data-pointer="custom"] * {
+  cursor: none !important;
+}
+
+/* ========== Wii Shop Channel ========== */
+
+.shop-shell {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 0.5rem 1rem 1.25rem;
+}
+
+.shop-shell-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgb(255 255 255 / 0.7) 0%, transparent 55%),
+    radial-gradient(circle at 15% 80%, rgb(160 210 245 / 0.35) 0%, transparent 40%),
+    radial-gradient(circle at 85% 70%, rgb(180 215 245 / 0.3) 0%, transparent 38%);
+}
+
+.shop-welcome {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem 1rem 2rem;
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+.shop-bag-hero {
+  width: min(42vw, 148px);
+  height: min(42vw, 148px);
+  margin-bottom: 0.75rem;
+  filter: drop-shadow(0 10px 20px rgb(47 120 180 / 0.25));
+}
+
+.shop-title {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-wii-fg);
+  margin: 0;
+}
+
+.shop-lead {
+  margin: 0.65rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-wii-muted);
+}
+
+.shop-cta {
+  margin-top: 1.5rem;
+  min-height: 52px;
+  min-width: min(100%, 240px);
+  padding: 0.75rem 1.75rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #6eb8ef 0%, #2f86d0 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 6px 18px rgb(47 134 208 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  transition: transform var(--motion-quick) var(--ease-wii), filter var(--motion-quick) var(--ease-wii);
+}
+
+.shop-cta:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.shop-cta:active {
+  transform: scale(0.98);
+}
+
+.shop-cta-sm {
+  min-height: 44px;
+  min-width: 0;
+  padding: 0.6rem 1.15rem;
+  font-size: 0.875rem;
+  margin-top: 0;
+}
+
+.shop-footnote {
+  margin: 1rem 0 0;
+  font-size: 0.7rem;
+  color: var(--color-wii-subtle);
+}
+
+.shop-hub {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0.5rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.shop-hub-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.shop-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-wii-accent-deep);
+  opacity: 0.85;
+}
+
+.shop-hub-title {
+  margin: 0.2rem 0 0;
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--color-wii-fg);
+}
+
+.shop-points-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0.4rem 0.85rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #e8f2fb 100%);
+  color: var(--color-wii-fg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 2px 8px rgb(70 110 150 / 0.12),
+    inset 0 0 0 1.5px var(--color-shop-line);
+  transition: transform var(--motion-quick) var(--ease-wii);
+}
+
+.shop-points-chip:hover {
+  transform: translateY(-1px);
+}
+
+.shop-points-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--color-wii-muted);
+  letter-spacing: 0.02em;
+}
+
+.shop-cat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.shop-cat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  min-height: 76px;
+  padding: 0.85rem 1rem;
+  border: none;
+  border-radius: 16px;
+  text-align: left;
+  background: linear-gradient(180deg, #ffffff 0%, var(--cat-soft, #eef6fc) 100%);
+  box-shadow:
+    0 4px 14px rgb(70 110 150 / 0.1),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--cat-accent, #3a8fd6) 35%, white);
+  transition:
+    transform var(--motion-fast) var(--ease-wii),
+    box-shadow var(--motion-fast) var(--ease-wii);
+}
+
+.shop-cat-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow:
+    0 10px 24px rgb(70 110 150 / 0.16),
+    inset 0 0 0 2px var(--cat-accent, #3a8fd6);
+}
+
+.shop-cat-card:active {
+  transform: scale(0.99);
+}
+
+.shop-cat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--cat-accent, #3a8fd6);
+  background: linear-gradient(160deg, #fff 0%, color-mix(in srgb, var(--cat-soft, #eef6fc) 80%, white) 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cat-accent, #3a8fd6) 25%, transparent);
+}
+
+.shop-cat-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.shop-cat-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-wii-fg);
+}
+
+.shop-cat-sub {
+  font-size: 0.78rem;
+  color: var(--color-wii-muted);
+  line-height: 1.3;
+}
+
+.shop-cat-arrow {
+  color: var(--cat-accent, #3a8fd6);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.shop-hub-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.shop-tool {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.72);
+  color: var(--color-wii-fg);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px rgb(150 185 215 / 0.45);
+  transition: background var(--motion-quick) var(--ease-wii), transform var(--motion-quick) var(--ease-wii);
+}
+
+.shop-tool:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.shop-panel-view {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0.25rem 0 0.5rem;
+  min-height: 0;
+}
+
+.shop-panel {
+  width: 100%;
+  max-width: 36rem;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #ffffff 0%, var(--color-shop-panel) 100%);
+  border-radius: 18px;
+  box-shadow:
+    0 12px 36px rgb(60 100 140 / 0.14),
+    inset 0 0 0 1.5px var(--color-shop-line);
+  overflow: hidden;
+  min-height: min(520px, 100%);
+}
+
+.shop-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem 0.65rem;
+  border-bottom: 1px solid rgb(158 196 224 / 0.35);
+}
+
+.shop-panel-title {
+  margin: 0.15rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-wii-fg);
+}
+
+.shop-panel-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.shop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0;
+  flex: 1;
+}
+
+.shop-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  transition: background var(--motion-quick) var(--ease-wii);
+}
+
+.shop-list-row:hover {
+  background: rgb(58 143 214 / 0.08);
+}
+
+.shop-list-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.shop-list-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-wii-fg);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.shop-list-sub {
+  font-size: 0.72rem;
+  color: var(--color-wii-muted);
+}
+
+.shop-dot {
+  margin: 0 0.25rem;
+  opacity: 0.5;
+}
+
+.shop-list-price {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-wii-accent-deep);
+  text-align: right;
+  max-width: 38%;
+}
+
+.shop-owned-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #2a8a5a;
+  background: #d8f5e8;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+}
+
+.shop-thumb {
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  flex-shrink: 0;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.55),
+    0 2px 6px rgb(70 100 140 / 0.12);
+  overflow: hidden;
+}
+
+.shop-thumb-glyph {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: rgb(40 60 90 / 0.55);
+}
+
+.shop-panel-foot {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem 0.85rem;
+  border-top: 1px solid rgb(158 196 224 / 0.35);
+  background: linear-gradient(180deg, rgb(240 248 255 / 0.5) 0%, rgb(230 242 252 / 0.9) 100%);
+}
+
+.shop-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 40px;
+  padding: 0.4rem 0.9rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #e8f0f8 100%);
+  color: var(--color-wii-fg);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow:
+    0 2px 6px rgb(70 110 150 / 0.1),
+    inset 0 0 0 1px rgb(150 185 215 / 0.55);
+  justify-self: start;
+  transition: transform var(--motion-quick) var(--ease-wii);
+}
+
+.shop-back-btn:hover {
+  transform: translateY(-1px);
+}
+
+.shop-foot-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.shop-balance {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-wii-accent-deep);
+}
+
+.shop-page-ind {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-wii-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-page-nav {
+  display: flex;
+  gap: 0.35rem;
+  justify-self: end;
+}
+
+.shop-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #ffffff 0%, #e8f0f8 100%);
+  color: var(--color-wii-accent-deep);
+  box-shadow:
+    0 2px 6px rgb(70 110 150 / 0.1),
+    inset 0 0 0 1px rgb(150 185 215 / 0.55);
+  transition: transform var(--motion-quick) var(--ease-wii), opacity var(--motion-quick) var(--ease-wii);
+}
+
+.shop-icon-btn:hover:not(:disabled) {
+  transform: scale(1.06);
+}
+
+.shop-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.shop-detail {
+  padding-bottom: 0.25rem;
+}
+
+.shop-detail-top {
+  display: flex;
+  gap: 1rem;
+  padding: 1.1rem 1.1rem 0.5rem;
+  align-items: flex-start;
+}
+
+.shop-detail-pub {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-wii-muted);
+}
+
+.shop-detail-blurb {
+  margin: 0.55rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-wii-muted);
+}
+
+.shop-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin: 0.75rem 1.1rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgb(232 244 252 / 0.7);
+  box-shadow: inset 0 0 0 1px rgb(158 196 224 / 0.4);
+}
+
+.shop-facts dt {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-wii-subtle);
+}
+
+.shop-facts dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-wii-fg);
+}
+
+.shop-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem 1.1rem 0.75rem;
+  align-items: center;
+}
+
+.shop-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #e8f0f8 100%);
+  color: var(--color-wii-fg);
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow:
+    0 2px 8px rgb(70 110 150 / 0.1),
+    inset 0 0 0 1px rgb(150 185 215 / 0.55);
+  transition: transform var(--motion-quick) var(--ease-wii);
+}
+
+.shop-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.shop-detail-balance {
+  padding: 0.65rem 1.1rem 1rem;
+  font-size: 0.8rem;
+  color: var(--color-wii-muted);
+  border-top: 1px solid rgb(158 196 224 / 0.35);
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-detail-balance strong {
+  color: var(--color-wii-accent-deep);
+}
+
+.shop-inline-note {
+  margin: 0.85rem 1.1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-wii-muted);
+}
+
+.shop-packs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  padding: 0 1.1rem 0.5rem;
+}
+
+.shop-pack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-height: 96px;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #e8f4fc 100%);
+  box-shadow:
+    0 3px 10px rgb(70 110 150 / 0.1),
+    inset 0 0 0 1.5px var(--color-shop-line);
+  transition: transform var(--motion-fast) var(--ease-wii);
+}
+
+.shop-pack:hover {
+  transform: translateY(-2px);
+}
+
+.shop-guide {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 1.1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shop-guide li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.shop-guide-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(180deg, #6eb8ef 0%, #2f86d0 100%);
+  box-shadow: 0 2px 6px rgb(47 134 208 / 0.3);
+}
+
+.shop-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: min(90vw, 360px);
+  padding: 0.7rem 1.15rem;
+  border-radius: 999px;
+  background: rgb(42 49 64 / 0.92);
+  color: #f4f6f8;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 8px 24px rgb(30 40 60 / 0.28);
+  animation: wii-fade-in var(--motion-fast) var(--ease-wii);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .wii-stage[data-pointer="custom"] * {
+    cursor: auto !important;
+  }
+
+  .wii-pointer {
+    display: none !important;
+  }
+
+  .wii-tile:hover {
+    transform: none;
+    box-shadow: var(--shadow-tile);
+    z-index: auto;
+  }
+
+  .wii-tile:hover::after {
+    box-shadow: inset 0 0 0 1.5px var(--color-wii-tile-edge);
+  }
+
+  .wii-tile:active,
+  .wii-tile[data-focused="true"] {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: var(--shadow-tile-hover);
+    z-index: 3;
+  }
+
+  .wii-tile:active::after,
+  .wii-tile[data-focused="true"]::after {
+    box-shadow:
+      inset 0 0 0 2.5px var(--color-wii-ring),
+      0 0 0 3px rgb(74 163 232 / 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wii-orb,
+  .wii-breathe,
+  .wii-disc-spin {
+    animation: none !important;
+  }
+
+  .wii-tile,
+  .wii-bar-btn,
+  .wii-page-btn,
+  .wii-modal,
+  .wii-modal-backdrop,
+  .wii-channel-screen,
+  .shop-cat-card,
+  .shop-cta {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .wii-tile {
+    border-radius: 10px;
+  }
+
+  .wii-page-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .wii-bottom-bar {
+    border-radius: 14px 14px 0 0;
+  }
+
+  .wii-bar-btn {
+    min-height: 42px;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .wii-tile-label {
+    font-size: 0.52rem;
+  }
+
+  .shop-shell {
+    padding: 0.25rem 0.65rem 0.85rem;
+  }
+
+  .shop-hub-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-list-price {
+    font-size: 0.7rem;
+  }
+
+  .shop-panel-foot {
+    grid-template-columns: auto 1fr auto;
+  }
+}
