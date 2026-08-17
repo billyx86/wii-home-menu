@@ -88,54 +88,51 @@ export function WiiMenu() {
 
     const onKey = (e: KeyboardEvent) => {
       const key = e.key;
+      // The handler closure always holds the current focusIndex / page /
+      // pageChannels (the effect resubscribes when any of them change, see
+      // the deps below), so the next focus position is computed HERE — all
+      // side effects (page-turn + hover sounds, nested setFocusIndex inside
+      // changePage) stay OUT of the setFocusIndex updater, which React may
+      // invoke twice to verify purity.
       if (key === "ArrowRight") {
         e.preventDefault();
-        setFocusIndex((i) => {
-          const next = i + 1;
-          if (next >= COLS * ROWS) {
-            if (page < PAGE_COUNT - 1) {
-              changePage(page + 1);
-              return 0;
-            }
-            return i;
-          }
-          const ch = pageChannels[next];
-          if (ch) hoverSound(ch.id);
-          return next;
-        });
+        const next = focusIndex + 1;
+        if (next >= COLS * ROWS) {
+          if (page < PAGE_COUNT - 1) changePage(page + 1);
+          return;
+        }
+        const ch = pageChannels[next];
+        if (ch) hoverSound(ch.id);
+        setFocusIndex(next);
       } else if (key === "ArrowLeft") {
         e.preventDefault();
-        setFocusIndex((i) => {
-          const next = i - 1;
-          if (next < 0) {
-            if (page > 0) {
-              changePage(page - 1);
-              return COLS * ROWS - 1;
-            }
-            return i;
+        const next = focusIndex - 1;
+        if (next < 0) {
+          if (page > 0) {
+            changePage(page - 1);
+            // Land on the right edge of the previous page, like the real menu
+            // (changePage resets focus to 0; this second, later update wins).
+            setFocusIndex(COLS * ROWS - 1);
           }
-          const ch = pageChannels[next];
-          if (ch) hoverSound(ch.id);
-          return next;
-        });
+          return;
+        }
+        const ch = pageChannels[next];
+        if (ch) hoverSound(ch.id);
+        setFocusIndex(next);
       } else if (key === "ArrowDown") {
         e.preventDefault();
-        setFocusIndex((i) => {
-          const next = i + COLS;
-          if (next >= COLS * ROWS) return i;
-          const ch = pageChannels[next];
-          if (ch) hoverSound(ch.id);
-          return next;
-        });
+        const next = focusIndex + COLS;
+        if (next >= COLS * ROWS) return;
+        const ch = pageChannels[next];
+        if (ch) hoverSound(ch.id);
+        setFocusIndex(next);
       } else if (key === "ArrowUp") {
         e.preventDefault();
-        setFocusIndex((i) => {
-          const next = i - COLS;
-          if (next < 0) return i;
-          const ch = pageChannels[next];
-          if (ch) hoverSound(ch.id);
-          return next;
-        });
+        const next = focusIndex - COLS;
+        if (next < 0) return;
+        const ch = pageChannels[next];
+        if (ch) hoverSound(ch.id);
+        setFocusIndex(next);
       } else if (key === "Enter" || key === " ") {
         e.preventDefault();
         const ch = pageChannels[focusIndex];

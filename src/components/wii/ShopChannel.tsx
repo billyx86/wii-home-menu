@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -268,11 +268,21 @@ export function ShopChannel() {
   const [points, setPoints] = useState(2500);
   const [owned, setOwned] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (msg: string) => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
     setToast(msg);
-    window.setTimeout(() => setToast(null), 2200);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2200);
   };
+
+  // Clear any pending hide timer on unmount so a stale timeout never fires
+  // against an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const go = (next: ShopView) => {
     playSelect();
