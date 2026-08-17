@@ -63,7 +63,10 @@ App serves on [http://localhost:8080](http://localhost:8080).
 ```bash
 npm run build      # production build
 npm run typecheck  # TypeScript
+npm test           # vitest unit tests
 ```
+
+CI (GitHub Actions) runs the same four checks — typecheck, lint, test, build — on every push to `main` and on all pull requests.
 
 ## Controls
 
