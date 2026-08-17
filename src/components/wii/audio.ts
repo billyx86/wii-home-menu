@@ -1,9 +1,42 @@
 /** Lightweight Web Audio beeps — Wii-inspired soft UI sounds, no assets needed. */
 
+const STORAGE_KEY = "wii.audio";
+
+interface AudioPrefs {
+  volume?: number;
+  muted?: boolean;
+}
+
+function loadPrefs(): AudioPrefs {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as AudioPrefs) : {};
+  } catch {
+    // Corrupt or unreadable storage — fall back to defaults.
+    return {};
+  }
+}
+
+function savePrefs(nextVolume: number, nextMuted: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume: nextVolume, muted: nextMuted }));
+  } catch {
+    // Storage unavailable (private mode etc.) — settings stay in-memory only.
+  }
+}
+
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
-let volume = 0.55;
-let muted = false;
+
+// Hydrate once at module load so boot sounds already respect saved settings.
+const initial = loadPrefs();
+const rawVolume = Number(initial.volume);
+let volume = Number.isFinite(rawVolume) ? Math.max(0, Math.min(1, rawVolume)) : 0.55;
+let muted = initial.muted === true;
 
 function ensureCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -24,11 +57,13 @@ function ensureCtx(): AudioContext | null {
 export function setWiiVolume(v: number) {
   volume = Math.max(0, Math.min(1, v));
   if (masterGain) masterGain.gain.value = muted ? 0 : volume;
+  savePrefs(volume, muted);
 }
 
 export function setWiiMuted(m: boolean) {
   muted = m;
   if (masterGain) masterGain.gain.value = muted ? 0 : volume;
+  savePrefs(volume, muted);
 }
 
 export function getWiiVolume() {
