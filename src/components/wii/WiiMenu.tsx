@@ -16,6 +16,7 @@ import { CHANNEL_PAGES, PAGE_COUNT, type ChannelDef } from "./channels";
 import { ChannelModal } from "./ChannelModal";
 import { ChannelScreen } from "./ChannelScreen";
 import { ChannelTile } from "./ChannelTile";
+import { findChannelById, getSavedMenuState, persistMenuState } from "./menuState";
 import { WiiClock } from "./Clock";
 import { SettingsPanel } from "./SettingsPanel";
 import { WiiPointer } from "./WiiPointer";
@@ -23,17 +24,34 @@ import { WiiPointer } from "./WiiPointer";
 const COLS = 4;
 const ROWS = 3;
 
+// Module-level memo so the three useState initializers below share one
+// localStorage read per page load.
+let savedMenu: ReturnType<typeof getSavedMenuState> | null = null;
+function initialMenuState() {
+  if (!savedMenu) savedMenu = getSavedMenuState();
+  return savedMenu;
+}
+
 export function WiiMenu() {
-  const [page, setPage] = useState(0);
-  const [focusIndex, setFocusIndex] = useState(0);
+  // Restore page/focus from localStorage (#10). The stage is still invisible
+  // while `booted` is false, so the jump happens off-screen — no flash.
+  const [page, setPage] = useState(() => initialMenuState().page);
+  const [focusIndex, setFocusIndex] = useState(() => initialMenuState().focusIndex);
   const [selected, setSelected] = useState<ChannelDef | null>(null);
   const [running, setRunning] = useState<ChannelDef | null>(null);
+  // A channel that was open last session is re-opened only AFTER the boot
+  // fade-in, so the stage is visible first.
+  const [deferredOpen, setDeferredOpen] = useState<ChannelDef | null>(() => {
+    const open = initialMenuState().open;
+    return open ? (findChannelById(open.channelId) ?? null) : null;
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sdOpen, setSdOpen] = useState(false);
   const [volume, setVolume] = useState(getWiiVolume);
   const [muted, setMuted] = useState(getWiiMuted);
   const [booted, setBooted] = useState(false);
   const lastHoverRef = useRef<string | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const pageChannels = CHANNEL_PAGES[page] ?? CHANNEL_PAGES[0];
 
   useEffect(() => {
@@ -44,6 +62,15 @@ export function WiiMenu() {
     return () => window.clearTimeout(t);
   }, []);
 
+  // Re-open a channel that was open last session, once the stage is visible.
+  // Skips the open sound — the boot jingle already plays for it.
+  useEffect(() => {
+    if (!booted || !deferredOpen) return;
+    setDeferredOpen(null);
+    if (initialMenuState().open?.mode === "screen") setRunning(deferredOpen);
+    else setSelected(deferredOpen);
+  }, [booted, deferredOpen]);
+
   const openChannel = useCallback((ch: ChannelDef) => {
     playSelect();
     setSelected(ch);
@@ -53,6 +80,33 @@ export function WiiMenu() {
     playBack();
     setSelected(null);
   }, []);
+
+  // Persist "where we are" (#10): page/focus plus any channel that is open
+  // (info modal or running screen). Closing a channel sets `open: null`, so a
+  // reload lands on the plain menu — never resurrects a closed channel.
+  useEffect(() => {
+    persistMenuState({
+      page,
+      focusIndex,
+      open: selected
+        ? { mode: "modal", channelId: selected.id }
+        : running
+          ? { mode: "screen", channelId: running.id }
+          : null,
+    });
+  }, [page, focusIndex, selected, running]);
+
+  // A11y (#9): DOM focus follows the highlighted tile while the menu is the
+  // active surface (no modal/screen/settings open). Guards skip the move when
+  // focus already sits on the target (e.g. after a tile click) or when the
+  // document focus is elsewhere on purpose.
+  useEffect(() => {
+    if (selected || running || settingsOpen || sdOpen) return;
+    const tile = gridRef.current?.querySelector<HTMLButtonElement>(
+      `[data-channel-id="${pageChannels[focusIndex]?.id ?? "__none__"}"]`,
+    );
+    if (tile && document.activeElement !== tile) tile.focus();
+  }, [page, focusIndex, selected, running, settingsOpen, sdOpen, pageChannels]);
 
   const startChannel = useCallback(() => {
     if (!selected || selected.kind === "empty") return;
@@ -178,11 +232,15 @@ export function WiiMenu() {
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-b from-white to-wii-bg-soft shadow-[0_2px_8px_rgb(70_90_120/0.16),inset_0_0_0_1.5px_rgb(160_172_188/0.45)] flex items-center justify-center"
               aria-hidden
             >
-              <span className="text-[0.7rem] sm:text-xs font-bold tracking-tight text-wii-accent-deep">Wii</span>
+              <span className="text-[0.7rem] sm:text-xs font-bold tracking-tight text-wii-accent-deep">
+                Wii
+              </span>
             </div>
             <div className="leading-tight">
               <div className="text-sm font-semibold text-wii-fg">Home Menu</div>
-              <div className="text-[0.7rem] text-wii-muted">Page {page + 1} of {PAGE_COUNT}</div>
+              <div className="text-[0.7rem] text-wii-muted">
+                Page {page + 1} of {PAGE_COUNT}
+              </div>
             </div>
           </div>
           <WiiClock />
@@ -201,15 +259,19 @@ export function WiiMenu() {
 
           <div className="flex-1 min-w-0 px-1.5 sm:px-5 lg:px-8">
             <div
+              ref={gridRef}
               className="grid grid-cols-4 gap-1.5 sm:gap-3 md:gap-4 max-w-4xl mx-auto"
-              role="grid"
+              role="listbox"
               aria-label="Channel grid"
             >
               {pageChannels.map((ch, i) => (
-                <div key={ch.id} role="gridcell">
+                <div key={ch.id} role="presentation">
                   <ChannelTile
                     channel={ch}
-                    focused={focusIndex === i && !selected && !settingsOpen}
+                    focused={focusIndex === i && !selected && !running && !settingsOpen && !sdOpen}
+                    tabIndex={
+                      focusIndex === i && !selected && !running && !settingsOpen && !sdOpen ? 0 : -1
+                    }
                     onFocus={() => setFocusIndex(i)}
                     onOpen={() => openChannel(ch)}
                     onHoverSound={() => hoverSound(ch.id)}
@@ -279,7 +341,7 @@ export function WiiMenu() {
         </footer>
       </div>
 
-      {selected && <ChannelModal channel={selected} onStart={startChannel} onBack={closeModal} />}
+      {selected && <ChannelModal channel={selected} onLaunch={startChannel} onClose={closeModal} />}
 
       {running && <ChannelScreen channel={running} onExit={exitChannel} />}
 
