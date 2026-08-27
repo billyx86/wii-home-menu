@@ -18,3 +18,9 @@ tmp/
 .grok/
 AGENTS.md
 .node_modules.lock
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
