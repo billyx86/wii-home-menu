@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { playBack, playHover, playOpen, playSelect } from "./audio";
+import { getSavedShopState, persistShopState } from "./shopState";
 
 /** Fan recreation of Wii Shop Channel IA + chrome — original demo catalog only. */
 
@@ -264,11 +265,20 @@ const CATEGORIES: {
 ];
 
 export function ShopChannel() {
+  // Hydrate once from localStorage so purchases/top-ups survive a reload
+  // (#13) — mirroring how the Home Menu restores position via menuState.
+  const [saved] = useState(() => getSavedShopState());
   const [view, setView] = useState<ShopView>({ kind: "welcome" });
-  const [points, setPoints] = useState(2500);
-  const [owned, setOwned] = useState<string[]>([]);
+  const [points, setPoints] = useState(saved.points);
+  const [owned, setOwned] = useState<string[]>(saved.owned);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Persist points/owned whenever they change; no-ops when storage is
+  // unavailable (private mode, quota).
+  useEffect(() => {
+    persistShopState({ points, owned });
+  }, [points, owned]);
 
   const showToast = (msg: string) => {
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
