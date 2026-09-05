@@ -19,6 +19,7 @@ A polished **fan recreation** of the classic Wii System Menu — soft ambient ch
 - Keyboard navigation (arrows, Enter, Esc, `[` `]`)  
 - Channel experiences: Disc, Mii Plaza, Photo, News, Forecast, Internet, Votes, Message Board, and more  
 - **Shop Channel** — Start Shopping → categories → title lists → download with demo Wii Points  
+- **Remembers where you were** — menu position/focus, audio volume/mute, and the Shop Channel's Wii Points balance + owned titles all persist across reloads via `localStorage`  
 - Responsive layout for desktop and phone  
 
 ## Screenshots
