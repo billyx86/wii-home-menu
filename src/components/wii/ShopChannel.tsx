@@ -14,7 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { playBack, playHover, playOpen, playSelect } from "./audio";
-import { getSavedShopState, persistShopState } from "./shopState";
+import { getSavedShopState, persistShopState, subscribeShopState } from "./shopState";
 
 /** Fan recreation of Wii Shop Channel IA + chrome — original demo catalog only. */
 
@@ -279,6 +279,17 @@ export function ShopChannel() {
   useEffect(() => {
     persistShopState({ points, owned });
   }, [points, owned]);
+
+  // Cross-tab sync (#17): a purchase or top-up made in another tab writes
+  // `wii.shop` and fires a `storage` event here — adopt it so the balance and
+  // the download list update without a reload. The subscription ignores
+  // malformed payloads and its own tab's writes (see shopState.ts).
+  useEffect(() => {
+    return subscribeShopState((next) => {
+      setPoints(next.points);
+      setOwned(next.owned);
+    });
+  }, []);
 
   const showToast = (msg: string) => {
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);

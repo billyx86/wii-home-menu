@@ -143,7 +143,67 @@ export function saveMenuState(storage: StorageLike, state: MenuState): void {
   }
 }
 
+/* ---- cross-tab sync (#17) ------------------------------------------------
+ *
+ * A `storage` event only ever fires in OTHER tabs (the writing tab never
+ * receives its own event), so menu navigation in one tab can re-hydrate the
+ * menu position of every other open tab without a reload. The decision is a
+ * pure function of the event (see {@link applyMenuStorageEvent}) so it is
+ * unit-testable without a real `window`; the thin `addEventListener` glue
+ * lives at the bottom with the rest of the browser-only code.
+ */
+
+/** The slice of the browser `storage` event this module cares about. */
+export interface StorageEventLike {
+  key: string | null;
+  newValue: string | null;
+}
+
+/**
+ * Parse a persisted menu-state string, returning `null` for malformed input
+ * (bad JSON, or a parsed value that is not a plain object). The caller keeps
+ * its current state, so a corrupt write in another tab can never corrupt this
+ * one. Valid input still goes through {@link parseMenuState}'s clamps, so
+ * out-of-range page/focus values or a stale channel id degrade safely.
+ */
+export function parseMenuStateValue(value: string): MenuState | null {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(value);
+  } catch {
+    return null;
+  }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  return parseMenuState(raw);
+}
+
+/**
+ * Decide how a `storage` event from another tab affects the menu state.
+ *
+ * Returns `null` — the event is ignored — when:
+ * - the key is not `wii.menu` (e.g. a `wii.shop` write),
+ * - `newValue` is `null` (the entry was deleted in the other tab — we keep
+ *   our position rather than snapping to page 0),
+ * - `newValue` equals `lastOwnWrite` (re-entrancy guard: this tab's own
+ *   serialized write echoed back — must not churn state or loop),
+ * - `newValue` is malformed (see {@link parseMenuStateValue}).
+ *
+ * Otherwise returns the re-hydrated state.
+ */
+export function applyMenuStorageEvent(
+  event: StorageEventLike,
+  opts?: { lastOwnWrite?: string | null },
+): MenuState | null {
+  if (event.key !== STORAGE_KEY) return null;
+  if (event.newValue === null) return null;
+  if (opts?.lastOwnWrite != null && event.newValue === opts.lastOwnWrite) return null;
+  return parseMenuStateValue(event.newValue);
+}
+
 /* ---- thin window.localStorage glue (browser only) ----------------------- */
+
+/** Last value this tab wrote — the re-entrancy guard for applyMenuStorageEvent. */
+let lastOwnWrite: string | null = null;
 
 function local(): StorageLike | null {
   if (typeof window === "undefined") return null;
@@ -161,5 +221,27 @@ export function getSavedMenuState(): MenuState {
 
 export function persistMenuState(state: MenuState): void {
   const s = local();
-  if (s) saveMenuState(s, state);
+  if (!s) return;
+  try {
+    const serialized = serializeMenuState(state);
+    s.setItem(STORAGE_KEY, serialized);
+    lastOwnWrite = serialized;
+  } catch {
+    // Storage unavailable (private mode, quota) — state stays in memory only.
+  }
+}
+
+/**
+ * Re-hydrate menu state when another tab writes `wii.menu` (#17): navigating
+ * pages or opening a channel in one tab is reflected in the others without a
+ * reload. Returns an unsubscribe function; no-op when `window` is unavailable.
+ */
+export function subscribeMenuState(listener: (state: MenuState) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    const next = applyMenuStorageEvent(event, { lastOwnWrite });
+    if (next) listener(next);
+  };
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
 }
