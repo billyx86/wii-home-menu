@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  applyShopStorageEvent,
   clampPoints,
   DEFAULT_SHOP_POINTS,
   DEFAULT_SHOP_STATE,
   loadShopState,
   parseShopState,
+  parseShopStateValue,
   sanitizeOwned,
   saveShopState,
   SHOP_STORAGE_KEY,
@@ -125,5 +127,72 @@ describe("loadShopState / saveShopState (StorageLike)", () => {
       },
     };
     expect(() => saveShopState(rejecting, { points: 1, owned: [] })).not.toThrow();
+  });
+});
+
+describe("cross-tab sync: applyShopStorageEvent (#17)", () => {
+  it("applies a valid `wii.shop` write from another tab", () => {
+    const newValue = JSON.stringify({ points: 1200, owned: ["title-a", "title-b"] });
+    const next = applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue });
+    expect(next).toEqual({ points: 1200, owned: ["title-a", "title-b"] });
+  });
+
+  it("ignores events for other keys (e.g. the menu store)", () => {
+    expect(
+      applyShopStorageEvent({ key: "wii.menu", newValue: JSON.stringify({ page: 1 }) }),
+    ).toBeNull();
+  });
+
+  it("ignores null-key events (e.g. a storage.clear in another tab)", () => {
+    expect(applyShopStorageEvent({ key: null, newValue: "{}" })).toBeNull();
+  });
+
+  it("ignores deletions (newValue null) — keeps the current state rather than wiping", () => {
+    expect(applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue: null })).toBeNull();
+  });
+
+  it("ignores this tab's own last write (re-entrancy guard)", () => {
+    const own = JSON.stringify({ points: 500, owned: ["x"] });
+    expect(applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue: own }, { lastOwnWrite: own })).toBeNull();
+    // ...but a *different* value from another tab still applies.
+    const foreign = JSON.stringify({ points: 400, owned: ["y"] });
+    expect(applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue: foreign }, { lastOwnWrite: own })).toEqual({
+      points: 400,
+      owned: ["y"],
+    });
+  });
+
+  it("ignores malformed JSON (no crash, no state change)", () => {
+    expect(applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue: "{not json!!" })).toBeNull();
+    expect(applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue: "undefined" })).toBeNull();
+  });
+
+  it("ignores valid JSON with the wrong shape (array / primitive)", () => {
+    expect(applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue: "[1,2,3]" })).toBeNull();
+    expect(applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue: '"hi"' })).toBeNull();
+    expect(applyShopStorageEvent({ key: SHOP_STORAGE_KEY, newValue: "null" })).toBeNull();
+  });
+
+  it("still clamps a sane-but-weird payload through parseShopState", () => {
+    const next = applyShopStorageEvent({
+      key: SHOP_STORAGE_KEY,
+      newValue: JSON.stringify({ points: -5, owned: ["a", "a", "", 7] }),
+    });
+    expect(next).toEqual({ points: DEFAULT_SHOP_POINTS, owned: ["a"] });
+  });
+});
+
+describe("cross-tab sync: parseShopStateValue (#17)", () => {
+  it("parses a valid payload", () => {
+    expect(parseShopStateValue(JSON.stringify({ points: 100, owned: ["z"] }))).toEqual({
+      points: 100,
+      owned: ["z"],
+    });
+  });
+
+  it("returns null for malformed or non-object payloads", () => {
+    expect(parseShopStateValue("{oops")).toBeNull();
+    expect(parseShopStateValue("[1]")).toBeNull();
+    expect(parseShopStateValue("42")).toBeNull();
   });
 });

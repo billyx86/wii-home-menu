@@ -16,7 +16,7 @@ import { CHANNEL_PAGES, PAGE_COUNT, type ChannelDef } from "./channels";
 import { ChannelModal } from "./ChannelModal";
 import { ChannelScreen } from "./ChannelScreen";
 import { ChannelTile } from "./ChannelTile";
-import { findChannelById, getSavedMenuState, persistMenuState } from "./menuState";
+import { findChannelById, getSavedMenuState, persistMenuState, subscribeMenuState } from "./menuState";
 import { WiiClock } from "./Clock";
 import { SettingsPanel } from "./SettingsPanel";
 import { WiiPointer } from "./WiiPointer";
@@ -95,6 +95,34 @@ export function WiiMenu() {
           : null,
     });
   }, [page, focusIndex, selected, running]);
+
+  // Cross-tab sync (#17): navigating or opening a channel in another tab
+  // writes `wii.menu` and fires a `storage` event here — adopt the new
+  // position so both tabs stay in lockstep without a reload. The
+  // subscription ignores malformed payloads and this tab's own writes (see
+  // menuState.ts). An open channel is resolved back to its definition via
+  // findChannelById; unknown ids were already filtered at parse time.
+  useEffect(() => {
+    return subscribeMenuState((next) => {
+      setPage(next.page);
+      setFocusIndex(next.focusIndex);
+      if (next.open) {
+        const ch = findChannelById(next.open.channelId);
+        if (ch) {
+          if (next.open.mode === "modal") {
+            setSelected(ch);
+            setRunning(null);
+          } else {
+            setRunning(ch);
+            setSelected(null);
+          }
+        }
+      } else {
+        setSelected(null);
+        setRunning(null);
+      }
+    });
+  }, []);
 
   // A11y (#9): DOM focus follows the highlighted tile while the menu is the
   // active surface (no modal/screen/settings open). Guards skip the move when
