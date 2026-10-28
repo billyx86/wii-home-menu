@@ -61,6 +61,7 @@ async function openShop(page: import("playwright").Page) {
   await page.locator(MODAL_START).click();
   await expect(page.locator(CHANNEL_EXIT)).toBeVisible();
   // The shop always boots on its welcome screen.
+  await expect(page.locator(WELCOME)).toBeVisible();
   await expect(page.locator(START_SHOPPING)).toBeVisible();
 }
 
