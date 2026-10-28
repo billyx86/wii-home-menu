@@ -13,6 +13,7 @@ import {
   Tv,
   Wallet,
 } from "lucide-react";
+import { t } from "../../lib/i18n";
 import { playBack, playHover, playOpen, playSelect } from "./audio";
 import { getSavedShopState, persistShopState, subscribeShopState } from "./shopState";
 
@@ -29,200 +30,210 @@ type ShopView =
 
 type ShopCategoryId = "virtual" | "wiiware" | "channels";
 
+/**
+ * A catalog entry. All display copy is stored as `*Key` i18n keys
+ * (`shop.title.<id>.<field>`) resolved at render time via `t()` — prices,
+ * player counts, and hues stay as plain data. A second locale is therefore a
+ * pure data drop-in (see `src/lib/i18n/en.ts`).
+ */
 type ShopTitle = {
   id: string;
-  name: string;
-  publisher: string;
-  system: string;
-  genre: string;
+  nameKey: string;
+  publisherKey: string;
+  systemKey: string;
+  genreKey: string;
+  ratingKey: string;
+  blurbKey: string;
   price: number;
   players: string;
-  rating: string;
-  blurb: string;
   hue: number;
   category: ShopCategoryId;
 };
 
+/** i18n key for a catalog field, e.g. `shop.title.vc-meadow.name`. */
+const titleKey = (id: string, field: "name" | "publisher" | "system" | "genre" | "rating" | "blurb") =>
+  `shop.title.${id}.${field}`;
+
 const CATALOG: ShopTitle[] = [
   {
     id: "vc-meadow",
-    name: "Meadow Knight",
-    publisher: "Pixel Grove",
-    system: "8-bit Classics",
-    genre: "Action",
+    nameKey: titleKey("vc-meadow", "name"),
+    publisherKey: titleKey("vc-meadow", "publisher"),
+    systemKey: titleKey("vc-meadow", "system"),
+    genreKey: titleKey("vc-meadow", "genre"),
+    ratingKey: titleKey("vc-meadow", "rating"),
+    blurbKey: titleKey("vc-meadow", "blurb"),
     price: 500,
     players: "1",
-    rating: "Everyone",
-    blurb: "A side-scrolling quest through sunlit fields and castle halls.",
     hue: 210,
     category: "virtual",
   },
   {
     id: "vc-orbit",
-    name: "Orbit Patrol",
-    publisher: "Starbit Soft",
-    system: "16-bit Classics",
-    genre: "Shooter",
+    nameKey: titleKey("vc-orbit", "name"),
+    publisherKey: titleKey("vc-orbit", "publisher"),
+    systemKey: titleKey("vc-orbit", "system"),
+    genreKey: titleKey("vc-orbit", "genre"),
+    ratingKey: titleKey("vc-orbit", "rating"),
+    blurbKey: titleKey("vc-orbit", "blurb"),
     price: 800,
     players: "1–2",
-    rating: "Everyone 10+",
-    blurb: "Pilot a tiny ship through neon asteroid belts and boss stations.",
     hue: 265,
     category: "virtual",
   },
   {
     id: "vc-harbor",
-    name: "Harbor Dash",
-    publisher: "Coastline Co.",
-    system: "8-bit Classics",
-    genre: "Racing",
+    nameKey: titleKey("vc-harbor", "name"),
+    publisherKey: titleKey("vc-harbor", "publisher"),
+    systemKey: titleKey("vc-harbor", "system"),
+    genreKey: titleKey("vc-harbor", "genre"),
+    ratingKey: titleKey("vc-harbor", "rating"),
+    blurbKey: titleKey("vc-harbor", "blurb"),
     price: 500,
     players: "1–2",
-    rating: "Everyone",
-    blurb: "Zip past docks and lighthouses in a breezy top-down racer.",
     hue: 195,
     category: "virtual",
   },
   {
     id: "vc-castle",
-    name: "Castle Capers 64",
-    publisher: "North Peak",
-    system: "3D Classics",
-    genre: "Adventure",
+    nameKey: titleKey("vc-castle", "name"),
+    publisherKey: titleKey("vc-castle", "publisher"),
+    systemKey: titleKey("vc-castle", "system"),
+    genreKey: titleKey("vc-castle", "genre"),
+    ratingKey: titleKey("vc-castle", "rating"),
+    blurbKey: titleKey("vc-castle", "blurb"),
     price: 1000,
     players: "1",
-    rating: "Everyone",
-    blurb: "Explore a sprawling courtyard castle with camera-tilt charm.",
     hue: 12,
     category: "virtual",
   },
   {
     id: "vc-arcade",
-    name: "Vector Blitz",
-    publisher: "Neon Arcade",
-    system: "Arcade Classics",
-    genre: "Arcade",
+    nameKey: titleKey("vc-arcade", "name"),
+    publisherKey: titleKey("vc-arcade", "publisher"),
+    systemKey: titleKey("vc-arcade", "system"),
+    genreKey: titleKey("vc-arcade", "genre"),
+    ratingKey: titleKey("vc-arcade", "rating"),
+    blurbKey: titleKey("vc-arcade", "blurb"),
     price: 900,
     players: "1–2",
-    rating: "Everyone 10+",
-    blurb: "Crisp vector lines, high-score tables, and two-player co-op.",
     hue: 330,
     category: "virtual",
   },
   {
     id: "vc-tune",
-    name: "Melody Master",
-    publisher: "Soft Piano",
-    system: "16-bit Classics",
-    genre: "Music",
+    nameKey: titleKey("vc-tune", "name"),
+    publisherKey: titleKey("vc-tune", "publisher"),
+    systemKey: titleKey("vc-tune", "system"),
+    genreKey: titleKey("vc-tune", "genre"),
+    ratingKey: titleKey("vc-tune", "rating"),
+    blurbKey: titleKey("vc-tune", "blurb"),
     price: 600,
     players: "1",
-    rating: "Everyone",
-    blurb: "Compose short jingles and clear rhythm stages with a light pen feel.",
     hue: 45,
     category: "virtual",
   },
   {
     id: "ww-balloon",
-    name: "Balloon Picnic",
-    publisher: "Cloud Kitten",
-    system: "WiiWare",
-    genre: "Party",
+    nameKey: titleKey("ww-balloon", "name"),
+    publisherKey: titleKey("ww-balloon", "publisher"),
+    systemKey: titleKey("ww-balloon", "system"),
+    genreKey: titleKey("ww-balloon", "genre"),
+    ratingKey: titleKey("ww-balloon", "rating"),
+    blurbKey: titleKey("ww-balloon", "blurb"),
     price: 700,
     players: "1–4",
-    rating: "Everyone",
-    blurb: "Keep balloons aloft with motion-friendly flicks and couch chaos.",
     hue: 340,
     category: "wiiware",
   },
   {
     id: "ww-garden",
-    name: "Pocket Garden",
-    publisher: "Fern Lab",
-    system: "WiiWare",
-    genre: "Simulation",
+    nameKey: titleKey("ww-garden", "name"),
+    publisherKey: titleKey("ww-garden", "publisher"),
+    systemKey: titleKey("ww-garden", "system"),
+    genreKey: titleKey("ww-garden", "genre"),
+    ratingKey: titleKey("ww-garden", "rating"),
+    blurbKey: titleKey("ww-garden", "blurb"),
     price: 1000,
     players: "1",
-    rating: "Everyone",
-    blurb: "Grow a quiet rooftop garden and trade seeds with Miis in the plaza.",
     hue: 140,
     category: "wiiware",
   },
   {
     id: "ww-sketch",
-    name: "Sketch Duel",
-    publisher: "Ink & Play",
-    system: "WiiWare",
-    genre: "Puzzle",
+    nameKey: titleKey("ww-sketch", "name"),
+    publisherKey: titleKey("ww-sketch", "publisher"),
+    systemKey: titleKey("ww-sketch", "system"),
+    genreKey: titleKey("ww-sketch", "genre"),
+    ratingKey: titleKey("ww-sketch", "rating"),
+    blurbKey: titleKey("ww-sketch", "blurb"),
     price: 800,
     players: "1–2",
-    rating: "Everyone",
-    blurb: "Draw shapes that become platforms — race a friend to the exit.",
     hue: 25,
     category: "wiiware",
   },
   {
     id: "ww-drift",
-    name: "Drift Kart Mini",
-    publisher: "Corner Apex",
-    system: "WiiWare",
-    genre: "Racing",
+    nameKey: titleKey("ww-drift", "name"),
+    publisherKey: titleKey("ww-drift", "publisher"),
+    systemKey: titleKey("ww-drift", "system"),
+    genreKey: titleKey("ww-drift", "genre"),
+    ratingKey: titleKey("ww-drift", "rating"),
+    blurbKey: titleKey("ww-drift", "blurb"),
     price: 1200,
     players: "1–4",
-    rating: "Everyone",
-    blurb: "Tiny tracks, big slides, and item boxes that stay friendly.",
     hue: 200,
     category: "wiiware",
   },
   {
     id: "ww-echo",
-    name: "Echo Chamber",
-    publisher: "Soft Wave",
-    system: "WiiWare",
-    genre: "Music",
+    nameKey: titleKey("ww-echo", "name"),
+    publisherKey: titleKey("ww-echo", "publisher"),
+    systemKey: titleKey("ww-echo", "system"),
+    genreKey: titleKey("ww-echo", "genre"),
+    ratingKey: titleKey("ww-echo", "rating"),
+    blurbKey: titleKey("ww-echo", "blurb"),
     price: 600,
     players: "1",
-    rating: "Everyone",
-    blurb: "Point the remote like a baton and conduct a living-room orchestra.",
     hue: 280,
     category: "wiiware",
   },
   {
     id: "ch-photoplus",
-    name: "Photo Plus",
-    publisher: "Menu Studio",
-    system: "Channel",
-    genre: "Utility",
+    nameKey: titleKey("ch-photoplus", "name"),
+    publisherKey: titleKey("ch-photoplus", "publisher"),
+    systemKey: titleKey("ch-photoplus", "system"),
+    genreKey: titleKey("ch-photoplus", "genre"),
+    ratingKey: titleKey("ch-photoplus", "rating"),
+    blurbKey: titleKey("ch-photoplus", "blurb"),
     price: 0,
     players: "—",
-    rating: "Everyone",
-    blurb: "Extra album tools and slideshow themes for your Photo Channel.",
     hue: 160,
     category: "channels",
   },
   {
     id: "ch-newsdesk",
-    name: "News Desk",
-    publisher: "Menu Studio",
-    system: "Channel",
-    genre: "Info",
+    nameKey: titleKey("ch-newsdesk", "name"),
+    publisherKey: titleKey("ch-newsdesk", "publisher"),
+    systemKey: titleKey("ch-newsdesk", "system"),
+    genreKey: titleKey("ch-newsdesk", "genre"),
+    ratingKey: titleKey("ch-newsdesk", "rating"),
+    blurbKey: titleKey("ch-newsdesk", "blurb"),
     price: 0,
     players: "—",
-    rating: "Everyone",
-    blurb: "A wider headline board with region filters and a soft ticker.",
     hue: 220,
     category: "channels",
   },
   {
     id: "ch-forecastpro",
-    name: "Sky Globe",
-    publisher: "Menu Studio",
-    system: "Channel",
-    genre: "Info",
+    nameKey: titleKey("ch-forecastpro", "name"),
+    publisherKey: titleKey("ch-forecastpro", "publisher"),
+    systemKey: titleKey("ch-forecastpro", "system"),
+    genreKey: titleKey("ch-forecastpro", "genre"),
+    ratingKey: titleKey("ch-forecastpro", "rating"),
+    blurbKey: titleKey("ch-forecastpro", "blurb"),
     price: 0,
     players: "—",
-    rating: "Everyone",
-    blurb: "Spin a friendly globe and peek at sample weather worldwide.",
     hue: 190,
     category: "channels",
   },
@@ -232,32 +243,32 @@ const PAGE_SIZE = 4;
 
 const CATEGORIES: {
   id: ShopCategoryId;
-  title: string;
-  subtitle: string;
+  titleKey: string;
+  subtitleKey: string;
   accent: string;
   soft: string;
   Icon: typeof Gamepad2;
 }[] = [
   {
     id: "virtual",
-    title: "Virtual Console",
-    subtitle: "Classic systems, reborn for the living room",
+    titleKey: "shop.cat.virtual.title",
+    subtitleKey: "shop.cat.virtual.subtitle",
     accent: "#2f7fd4",
     soft: "#d9ecff",
     Icon: Tv,
   },
   {
     id: "wiiware",
-    title: "WiiWare",
-    subtitle: "Fresh downloads built for remote play",
+    titleKey: "shop.cat.wiiware.title",
+    subtitleKey: "shop.cat.wiiware.subtitle",
     accent: "#d45a8a",
     soft: "#fce0ec",
     Icon: Sparkles,
   },
   {
     id: "channels",
-    title: "Wii Channels",
-    subtitle: "Extra channels for your Home Menu",
+    titleKey: "shop.cat.channels.title",
+    subtitleKey: "shop.cat.channels.subtitle",
     accent: "#3a9a6a",
     soft: "#d8f5e8",
     Icon: Layers,
@@ -370,22 +381,22 @@ export function ShopChannel() {
             if (!title) return;
             if (owned.includes(title.id)) {
               playSelect();
-              showToast("Already on your console — re-download free.");
+              showToast(t("shop.toast.reowned"));
               return;
             }
             if (title.price > points) {
               playBack();
-              showToast("Not enough Wii Points.");
+              showToast(t("shop.toast.insufficient"));
               return;
             }
             playOpen();
             setPoints((p) => p - title.price);
             setOwned((o) => [...o, title.id]);
-            showToast(`Downloaded · ${title.name}`);
+            showToast(t("shop.toast.downloaded", { title: t(title.nameKey) }));
           }}
           onGift={() => {
             playSelect();
-            showToast("Gift message queued for a Wii Friend (demo).");
+            showToast(t("shop.toast.gift"));
           }}
         />
       )}
@@ -397,7 +408,7 @@ export function ShopChannel() {
           onAdd={(n) => {
             playOpen();
             setPoints((p) => p + n);
-            showToast(`Added ${n.toLocaleString()} Wii Points`);
+            showToast(t("shop.toast.added", { points: n.toLocaleString() }));
           }}
         />
       )}
@@ -417,7 +428,7 @@ export function ShopChannel() {
       {view.kind === "guide" && <GuideScreen onBack={back} />}
 
       {toast && (
-        <div className="shop-toast" role="status">
+        <div className="shop-toast" role="status" data-testid="shop-toast">
           {toast}
         </div>
       )}
@@ -427,18 +438,16 @@ export function ShopChannel() {
 
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
-    <div className="shop-welcome">
+    <div className="shop-welcome" data-testid="shop-welcome">
       <div className="shop-bag-hero wii-breathe" aria-hidden>
         <ShoppingBagIcon />
       </div>
-      <h1 className="shop-title">Wii Shop Channel</h1>
-      <p className="shop-lead">
-        Browse classics, downloadable software, and extra channels — paid with Wii Points, ready for your Home Menu.
-      </p>
-      <button type="button" className="shop-cta" onClick={onStart}>
-        Start Shopping
+      <h1 className="shop-title">{t("shop.title")}</h1>
+      <p className="shop-lead">{t("shop.lead")}</p>
+      <button type="button" className="shop-cta" data-testid="shop-start-shopping" onClick={onStart}>
+        {t("shop.start")}
       </button>
-      <p className="shop-footnote">Demo catalog · no real purchases</p>
+      <p className="shop-footnote">{t("shop.demoNote")}</p>
     </div>
   );
 }
@@ -457,16 +466,18 @@ function HubScreen({
   onGuide: () => void;
 }) {
   return (
-    <div className="shop-hub">
+    <div className="shop-hub" data-testid="shop-hub">
       <header className="shop-hub-head">
         <div>
-          <div className="shop-kicker">Wii Shop Channel</div>
-          <h1 className="shop-hub-title">What would you like to shop for?</h1>
+          <div className="shop-kicker">{t("shop.title")}</div>
+          <h1 className="shop-hub-title" data-testid="shop-hub-title">
+            {t("shop.hubTitle")}
+          </h1>
         </div>
-        <button type="button" className="shop-points-chip" onClick={onPoints}>
+        <button type="button" className="shop-points-chip" data-testid="shop-points-chip" onClick={onPoints}>
           <Wallet className="w-4 h-4" />
           <span>{points.toLocaleString()}</span>
-          <span className="shop-points-label">Wii Points</span>
+          <span className="shop-points-label">{t("shop.pointsLabel")}</span>
         </button>
       </header>
 
@@ -476,6 +487,7 @@ function HubScreen({
             key={cat.id}
             type="button"
             className="shop-cat-card"
+            data-testid={`shop-cat-${cat.id}`}
             style={{ ["--cat-accent" as string]: cat.accent, ["--cat-soft" as string]: cat.soft }}
             onClick={() => onCategory(cat.id)}
             onMouseEnter={() => playHover()}
@@ -484,8 +496,8 @@ function HubScreen({
               <cat.Icon className="w-7 h-7 sm:w-8 sm:h-8" strokeWidth={1.75} />
             </span>
             <span className="shop-cat-copy">
-              <span className="shop-cat-name">{cat.title}</span>
-              <span className="shop-cat-sub">{cat.subtitle}</span>
+              <span className="shop-cat-name">{t(cat.titleKey)}</span>
+              <span className="shop-cat-sub">{t(cat.subtitleKey)}</span>
             </span>
             <ArrowRight className="shop-cat-arrow w-5 h-5" />
           </button>
@@ -493,10 +505,10 @@ function HubScreen({
       </div>
 
       <div className="shop-hub-tools">
-        <ToolBtn icon={Wallet} label="Add Wii Points" onClick={onPoints} />
-        <ToolBtn icon={Download} label="Titles You've Downloaded" onClick={onDownloads} />
-        <ToolBtn icon={HelpCircle} label="Shopping Guide" onClick={onGuide} />
-        <ToolBtn icon={History} label="Account Activity" onClick={onPoints} />
+        <ToolBtn icon={Wallet} label={t("shop.tool.addPoints")} dataTestId="shop-tool-add-points" onClick={onPoints} />
+        <ToolBtn icon={Download} label={t("shop.tool.downloads")} dataTestId="shop-tool-downloads" onClick={onDownloads} />
+        <ToolBtn icon={HelpCircle} label={t("shop.tool.guide")} dataTestId="shop-tool-guide" onClick={onGuide} />
+        <ToolBtn icon={History} label={t("shop.tool.activity")} dataTestId="shop-tool-activity" onClick={onPoints} />
       </div>
     </div>
   );
@@ -505,14 +517,16 @@ function HubScreen({
 function ToolBtn({
   icon: Icon,
   label,
+  dataTestId,
   onClick,
 }: {
   icon: typeof Wallet;
   label: string;
+  dataTestId: string;
   onClick: () => void;
 }) {
   return (
-    <button type="button" className="shop-tool" onClick={onClick} onMouseEnter={() => playHover()}>
+    <button type="button" className="shop-tool" data-testid={dataTestId} onClick={onClick} onMouseEnter={() => playHover()}>
       <Icon className="w-4 h-4 shrink-0" />
       <span>{label}</span>
     </button>
@@ -542,43 +556,50 @@ function CatalogScreen({
   const slice = list.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
   return (
-    <div className="shop-panel-view">
+    <div className="shop-panel-view" data-testid="shop-catalog">
       <div className="shop-panel">
         <div className="shop-panel-head">
           <div>
-            <div className="shop-kicker">{meta.title}</div>
-            <h2 className="shop-panel-title">Popular Titles</h2>
+            <div className="shop-kicker">{t(meta.titleKey)}</div>
+            <h2 className="shop-panel-title">{t("shop.catalogTitle")}</h2>
           </div>
           <div className="shop-panel-actions">
-            <button type="button" className="shop-icon-btn" aria-label="Help" onClick={() => playSelect()}>
+            <button
+              type="button"
+              className="shop-icon-btn"
+              data-testid="shop-help"
+              aria-label={t("shop.help")}
+              onClick={() => playSelect()}
+            >
               <HelpCircle className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         <ul className="shop-list">
-          {slice.map((t) => (
-            <li key={t.id}>
+          {slice.map((item) => (
+            <li key={item.id}>
               <button
                 type="button"
                 className="shop-list-row"
-                onClick={() => onOpen(t.id)}
+                data-testid={`shop-title-row-${item.id}`}
+                onClick={() => onOpen(item.id)}
                 onMouseEnter={() => playHover()}
               >
-                <TitleThumb title={t} />
+                <TitleThumb title={item} />
                 <span className="shop-list-meta">
                   <span className="shop-list-name">
-                    {t.name}
-                    {owned.includes(t.id) && <span className="shop-owned-tag">Owned</span>}
+                    {t(item.nameKey)}
+                    {owned.includes(item.id) && <span className="shop-owned-tag">{t("shop.owned")}</span>}
                   </span>
                   <span className="shop-list-sub">
-                    {t.publisher}
+                    {t(item.publisherKey)}
                     <span className="shop-dot">·</span>
-                    {t.system}
+                    {t(item.systemKey)}
                   </span>
                 </span>
                 <span className="shop-list-price">
-                  {t.price === 0 ? "Free" : `${t.price.toLocaleString()} Points`}
+                  {item.price === 0 ? t("shop.free") : t("shop.pricePoints", { price: item.price.toLocaleString() })}
                 </span>
               </button>
             </li>
@@ -586,12 +607,12 @@ function CatalogScreen({
         </ul>
 
         <div className="shop-panel-foot">
-          <button type="button" className="shop-back-btn" onClick={onBack}>
+          <button type="button" className="shop-back-btn" data-testid="shop-back" onClick={onBack}>
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t("shop.back")}
           </button>
           <div className="shop-foot-center">
-            <span className="shop-balance">{points.toLocaleString()} Wii Points</span>
+            <span className="shop-balance">{t("shop.balance", { points: points.toLocaleString() })}</span>
             <span className="shop-page-ind">
               {page + 1}/{pages}
             </span>
@@ -601,7 +622,7 @@ function CatalogScreen({
               type="button"
               className="shop-icon-btn"
               disabled={page <= 0}
-              aria-label="Previous page"
+              aria-label={t("menu.previousPage")}
               onClick={() => onPage(page - 1)}
             >
               <ArrowLeft className="w-4 h-4" />
@@ -610,7 +631,7 @@ function CatalogScreen({
               type="button"
               className="shop-icon-btn"
               disabled={page >= pages - 1}
-              aria-label="Next page"
+              aria-label={t("menu.nextPage")}
               onClick={() => onPage(page + 1)}
             >
               <ArrowRight className="w-4 h-4" />
@@ -641,55 +662,64 @@ function DetailScreen({
   if (!title) return null;
 
   return (
-    <div className="shop-panel-view">
+    <div className="shop-panel-view" data-testid="shop-detail">
       <div className="shop-panel shop-detail">
         <div className="shop-detail-top">
           <TitleThumb title={title} large />
           <div className="min-w-0">
-            <div className="shop-kicker">{title.system}</div>
-            <h2 className="shop-panel-title">{title.name}</h2>
-            <p className="shop-detail-pub">{title.publisher}</p>
-            <p className="shop-detail-blurb">{title.blurb}</p>
+            <div className="shop-kicker">{t(title.systemKey)}</div>
+            <h2 className="shop-panel-title" data-testid="shop-detail-title">
+              {t(title.nameKey)}
+            </h2>
+            <p className="shop-detail-pub">{t(title.publisherKey)}</p>
+            <p className="shop-detail-blurb">{t(title.blurbKey)}</p>
           </div>
         </div>
 
         <dl className="shop-facts">
           <div>
-            <dt>Genre</dt>
-            <dd>{title.genre}</dd>
+            <dt>{t("shop.fact.genre")}</dt>
+            <dd>{t(title.genreKey)}</dd>
           </div>
           <div>
-            <dt>Players</dt>
+            <dt>{t("shop.fact.players")}</dt>
             <dd>{title.players}</dd>
           </div>
           <div>
-            <dt>Rating</dt>
-            <dd>{title.rating}</dd>
+            <dt>{t("shop.fact.rating")}</dt>
+            <dd>{t(title.ratingKey)}</dd>
           </div>
           <div>
-            <dt>Price</dt>
-            <dd>{title.price === 0 ? "Free" : `${title.price.toLocaleString()} Wii Points`}</dd>
+            <dt>{t("shop.fact.price")}</dt>
+            <dd>
+              {title.price === 0 ? t("shop.free") : t("shop.priceWiiPoints", { price: title.price.toLocaleString() })}
+            </dd>
           </div>
         </dl>
 
         <div className="shop-detail-actions">
-          <button type="button" className="shop-cta shop-cta-sm" onClick={onDownload}>
+          <button
+            type="button"
+            className="shop-cta shop-cta-sm"
+            data-testid="shop-download-btn"
+            onClick={onDownload}
+          >
             <Download className="w-4 h-4" />
-            {owned ? "Re-download" : title.price === 0 ? "Download Free" : "Download"}
+            {owned ? t("shop.redownload") : title.price === 0 ? t("shop.downloadFree") : t("shop.download")}
           </button>
-          <button type="button" className="shop-secondary" onClick={onGift}>
+          <button type="button" className="shop-secondary" data-testid="shop-gift-btn" onClick={onGift}>
             <Gift className="w-4 h-4" />
-            Gift
+            {t("shop.gift")}
           </button>
-          <button type="button" className="shop-back-btn" onClick={onBack}>
+          <button type="button" className="shop-back-btn" data-testid="shop-back" onClick={onBack}>
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t("shop.back")}
           </button>
         </div>
 
-        <div className="shop-detail-balance">
-          Your balance · <strong>{points.toLocaleString()}</strong> Wii Points
-          {owned && <span className="shop-owned-tag ml-2">On this console</span>}
+        <div className="shop-detail-balance" data-testid="shop-detail-balance">
+          {t("shop.yourBalance", { points: points.toLocaleString() })}
+          {owned && <span className="shop-owned-tag ml-2">{t("shop.onConsole")}</span>}
         </div>
       </div>
     </div>
@@ -707,30 +737,39 @@ function PointsScreen({
 }) {
   const packs = [1000, 2000, 3000, 5000];
   return (
-    <div className="shop-panel-view">
+    <div className="shop-panel-view" data-testid="shop-points-screen">
       <div className="shop-panel">
         <div className="shop-panel-head">
           <div>
-            <div className="shop-kicker">Account</div>
-            <h2 className="shop-panel-title">Add Wii Points</h2>
+            <div className="shop-kicker">{t("shop.pointsKicker")}</div>
+            <h2 className="shop-panel-title" data-testid="shop-points-title">
+              {t("shop.pointsTitle")}
+            </h2>
           </div>
         </div>
-        <p className="shop-inline-note">
-          Current balance: <strong>{points.toLocaleString()}</strong> Wii Points. Demo packs only — nothing is charged.
+        <p className="shop-inline-note" data-testid="shop-points-note">
+          {t("shop.pointsNote", { points: points.toLocaleString() })}
         </p>
         <div className="shop-packs">
           {packs.map((n) => (
-            <button key={n} type="button" className="shop-pack" onClick={() => onAdd(n)} onMouseEnter={() => playHover()}>
+            <button
+              key={n}
+              type="button"
+              className="shop-pack"
+              data-testid={`shop-pack-${n}`}
+              onClick={() => onAdd(n)}
+              onMouseEnter={() => playHover()}
+            >
               <Wallet className="w-5 h-5 text-wii-accent-deep" />
               <span className="font-semibold">{n.toLocaleString()}</span>
-              <span className="text-xs text-wii-muted">Wii Points</span>
+              <span className="text-xs text-wii-muted">{t("shop.pointsLabel")}</span>
             </button>
           ))}
         </div>
         <div className="shop-panel-foot">
-          <button type="button" className="shop-back-btn" onClick={onBack}>
+          <button type="button" className="shop-back-btn" data-testid="shop-back" onClick={onBack}>
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t("shop.back")}
           </button>
           <div />
           <div />
@@ -751,36 +790,41 @@ function DownloadsScreen({
 }) {
   const list = CATALOG.filter((t) => owned.includes(t.id));
   return (
-    <div className="shop-panel-view">
+    <div className="shop-panel-view" data-testid="shop-downloads-screen">
       <div className="shop-panel">
         <div className="shop-panel-head">
           <div>
-            <div className="shop-kicker">Library</div>
-            <h2 className="shop-panel-title">Titles You've Downloaded</h2>
+            <div className="shop-kicker">{t("shop.downloadsKicker")}</div>
+            <h2 className="shop-panel-title">{t("shop.downloadsTitle")}</h2>
           </div>
         </div>
         {list.length === 0 ? (
-          <p className="shop-inline-note">No downloads yet. Grab something from Virtual Console or WiiWare.</p>
+          <p className="shop-inline-note">{t("shop.noDownloads")}</p>
         ) : (
           <ul className="shop-list">
-            {list.map((t) => (
-              <li key={t.id}>
-                <button type="button" className="shop-list-row" onClick={() => onOpen(t.id)}>
-                  <TitleThumb title={t} />
+            {list.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className="shop-list-row"
+                  data-testid={`shop-title-row-${item.id}`}
+                  onClick={() => onOpen(item.id)}
+                >
+                  <TitleThumb title={item} />
                   <span className="shop-list-meta">
-                    <span className="shop-list-name">{t.name}</span>
-                    <span className="shop-list-sub">{t.system}</span>
+                    <span className="shop-list-name">{t(item.nameKey)}</span>
+                    <span className="shop-list-sub">{t(item.systemKey)}</span>
                   </span>
-                  <span className="shop-list-price">Free re-download</span>
+                  <span className="shop-list-price">{t("shop.freeRedownload")}</span>
                 </button>
               </li>
             ))}
           </ul>
         )}
         <div className="shop-panel-foot">
-          <button type="button" className="shop-back-btn" onClick={onBack}>
+          <button type="button" className="shop-back-btn" data-testid="shop-back" onClick={onBack}>
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t("shop.back")}
           </button>
           <div />
           <div />
@@ -792,36 +836,36 @@ function DownloadsScreen({
 
 function GuideScreen({ onBack }: { onBack: () => void }) {
   const steps = [
-    { t: "Start Shopping", d: "Enter the shop from the welcome screen to see the three main aisles." },
-    { t: "Pick a category", d: "Virtual Console for classics, WiiWare for new downloads, Channels for menu extras." },
-    { t: "Browse the list", d: "Each row shows cover art, publisher, system, and price in Wii Points." },
-    { t: "Download or Gift", d: "Confirm a title to download to this console, or queue a gift for a friend." },
-    { t: "Add Points", d: "Top up your balance anytime — in this demo, packs are free samples." },
+    { titleKey: "shop.guide.step1.title", descKey: "shop.guide.step1.desc" },
+    { titleKey: "shop.guide.step2.title", descKey: "shop.guide.step2.desc" },
+    { titleKey: "shop.guide.step3.title", descKey: "shop.guide.step3.desc" },
+    { titleKey: "shop.guide.step4.title", descKey: "shop.guide.step4.desc" },
+    { titleKey: "shop.guide.step5.title", descKey: "shop.guide.step5.desc" },
   ];
   return (
-    <div className="shop-panel-view">
+    <div className="shop-panel-view" data-testid="shop-guide-screen">
       <div className="shop-panel">
         <div className="shop-panel-head">
           <div>
-            <div className="shop-kicker">Help</div>
-            <h2 className="shop-panel-title">Shopping Guide</h2>
+            <div className="shop-kicker">{t("shop.guideKicker")}</div>
+            <h2 className="shop-panel-title">{t("shop.guideTitle")}</h2>
           </div>
         </div>
         <ol className="shop-guide">
           {steps.map((s, i) => (
-            <li key={s.t}>
+            <li key={s.titleKey}>
               <span className="shop-guide-num">{i + 1}</span>
               <span>
-                <span className="font-semibold text-wii-fg block">{s.t}</span>
-                <span className="text-sm text-wii-muted">{s.d}</span>
+                <span className="font-semibold text-wii-fg block">{t(s.titleKey)}</span>
+                <span className="text-sm text-wii-muted">{t(s.descKey)}</span>
               </span>
             </li>
           ))}
         </ol>
         <div className="shop-panel-foot">
-          <button type="button" className="shop-back-btn" onClick={onBack}>
+          <button type="button" className="shop-back-btn" data-testid="shop-back" onClick={onBack}>
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t("shop.back")}
           </button>
           <div />
           <div />
