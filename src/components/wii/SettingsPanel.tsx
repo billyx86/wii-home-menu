@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Volume2, VolumeX, X } from "lucide-react";
+import { t } from "../../lib/i18n";
 import { getWiiMuted, getWiiVolume, setWiiMuted, setWiiVolume } from "./audio";
 
 type Props = {
@@ -33,13 +34,14 @@ export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose 
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
+        data-testid="settings-panel"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-2">
           <h2 id="settings-title" className="text-xl font-semibold tracking-tight">
-            Wii Settings
+            {t("settings.title")}
           </h2>
-          <button type="button" className="wii-bar-btn !px-3 !min-h-10" onClick={onClose} aria-label="Close settings">
+          <button type="button" className="wii-bar-btn !px-3 !min-h-10" data-testid="settings-close" onClick={onClose} aria-label={t("settings.close")}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -49,11 +51,12 @@ export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose 
             <div className="flex items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-2 font-semibold text-sm">
                 {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                Sound
+                {t("settings.sound")}
               </div>
               <button
                 type="button"
                 className="wii-bar-btn !min-h-9 !px-3 text-xs"
+                data-testid="settings-mute-toggle"
                 data-active={muted ? "true" : "false"}
                 onClick={() => {
                   const next = !muted;
@@ -61,11 +64,11 @@ export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose 
                   onMuted(next);
                 }}
               >
-                {muted ? "Unmute" : "Mute"}
+                {muted ? t("settings.unmute") : t("settings.mute")}
               </button>
             </div>
             <label className="block text-xs font-medium text-wii-muted mb-2" htmlFor="wii-vol">
-              Volume · {Math.round(volume * 100)}%
+              {t("settings.volume", { pct: Math.round(volume * 100) })}
             </label>
             <input
               id="wii-vol"
@@ -87,33 +90,34 @@ export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose 
           </div>
 
           <div className="wii-settings-panel p-4 space-y-2">
-            <div className="font-semibold text-sm">Controls</div>
+            <div className="font-semibold text-sm">{t("settings.controls")}</div>
             <ul className="text-sm text-wii-muted space-y-1.5 leading-relaxed">
               <li>
-                <span className="font-semibold text-wii-fg">Arrow keys</span> — move focus across channels
+                <span className="font-semibold text-wii-fg">{t("settings.key.arrows")}</span> —{" "}
+                {t("settings.key.arrows.desc")}
               </li>
               <li>
-                <span className="font-semibold text-wii-fg">Enter</span> — open focused channel
+                <span className="font-semibold text-wii-fg">{t("settings.key.enter")}</span> —{" "}
+                {t("settings.key.enter.desc")}
               </li>
               <li>
-                <span className="font-semibold text-wii-fg">Esc</span> — back / close
+                <span className="font-semibold text-wii-fg">{t("settings.key.esc")}</span> —{" "}
+                {t("settings.key.esc.desc")}
               </li>
               <li>
-                <span className="font-semibold text-wii-fg">[ ]</span> — previous / next page
+                <span className="font-semibold text-wii-fg">{t("settings.key.brackets")}</span> —{" "}
+                {t("settings.key.brackets.desc")}
               </li>
             </ul>
           </div>
 
           <div className="wii-settings-panel p-4">
-            <div className="font-semibold text-sm mb-1">About this menu</div>
-            <p className="text-sm text-wii-muted leading-relaxed">
-              A fan-made recreation of the classic living-room home menu look and feel — original channel art and
-              layout, no console hardware required.
-            </p>
+            <div className="font-semibold text-sm mb-1">{t("settings.about")}</div>
+            <p className="text-sm text-wii-muted leading-relaxed">{t("settings.aboutBody")}</p>
           </div>
 
-          <button type="button" className="wii-primary-btn w-full" onClick={onClose}>
-            Done
+          <button type="button" className="wii-primary-btn w-full" data-testid="settings-done" onClick={onClose}>
+            {t("settings.done")}
           </button>
         </div>
       </div>

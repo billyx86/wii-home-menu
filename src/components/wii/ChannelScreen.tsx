@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowLeft, CloudSun, Globe, Image, Newspaper, Users } from "lucide-react";
+import { t } from "../../lib/i18n";
 import { ChannelArt } from "./ChannelArt";
 import type { ChannelDef } from "./channels";
 import { ShopChannel } from "./ShopChannel";
@@ -39,13 +40,19 @@ export function ChannelScreen({ channel, onExit }: Props) {
       }
     >
       <header className="relative z-10 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4">
-        <button type="button" className="wii-bar-btn" onClick={onExit} aria-label="Return to Wii Menu">
+        <button
+          type="button"
+          className="wii-bar-btn"
+          data-testid="channel-screen-exit"
+          onClick={onExit}
+          aria-label={t("channel.exitToMenu")}
+        >
           <ArrowLeft className="w-4 h-4" />
-          <span>Wii Menu</span>
+          <span>{t("channel.wiiMenu")}</span>
         </button>
         <div className="text-right">
-          <div className="text-sm font-semibold text-wii-fg">{channel.name}</div>
-          <div className="text-xs text-wii-muted">{channel.subtitle}</div>
+          <div className="text-sm font-semibold text-wii-fg">{t(channel.nameKey)}</div>
+          <div className="text-xs text-wii-muted">{t(channel.subtitleKey)}</div>
         </div>
       </header>
 
@@ -108,15 +115,14 @@ function DiscBody({ channel }: { channel: ChannelDef }) {
         />
       </div>
       <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Please insert a disc</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("channel.disc.insert")}</h1>
         <p className="mt-2 text-wii-muted max-w-md mx-auto leading-relaxed">
-          When a disc is ready, it will appear here with cover art and a Start button — just like the living-room
-          console experience.
+          {t("channel.disc.insertBody")}
         </p>
       </div>
       <Panel className="px-6 py-4 text-sm text-wii-muted">
-        Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-wii-bg-soft font-semibold text-wii-fg">Esc</kbd> or use
-        Wii Menu to return.
+        {t("channel.disc.tipBefore")} <kbd className="px-1.5 py-0.5 rounded bg-wii-bg-soft font-semibold text-wii-fg">Esc</kbd>{" "}
+        {t("channel.disc.tipAfter")}
       </Panel>
     </div>
   );
@@ -139,16 +145,16 @@ function MiiBody({ channel }: { channel: ChannelDef }) {
         <Panel className="p-6 flex flex-col items-center gap-3 sm:w-56 shrink-0">
           <ChannelArt kind={channel.kind} accent={channel.accent} accentSoft={channel.accentSoft} size="hero" />
           <div className="text-center">
-            <div className="font-semibold">{channel.name}</div>
-            <div className="text-xs text-wii-muted mt-1">Plaza open</div>
+            <div className="font-semibold">{t(channel.nameKey)}</div>
+            <div className="text-xs text-wii-muted mt-1">{t("channel.mii.plazaOpen")}</div>
           </div>
         </Panel>
         <div className="flex-1 w-full">
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             <Users className="w-6 h-6 text-wii-accent-deep" />
-            Mii Plaza
+            {t("channel.mii.title")}
           </h1>
-          <p className="mt-1 text-sm text-wii-muted">A friendly gathering of faces on parade.</p>
+          <p className="mt-1 text-sm text-wii-muted">{t("channel.mii.sub")}</p>
           <div className="mt-5 grid grid-cols-4 sm:grid-cols-4 gap-3">
             {faces.map((f) => (
               <div
@@ -180,29 +186,29 @@ function MiiBody({ channel }: { channel: ChannelDef }) {
 
 function PhotoBody({ channel }: { channel: ChannelDef }) {
   const photos = [
-    { t: "Sunset pier", c: "linear-gradient(135deg,#f6d365,#fda085)" },
-    { t: "Mountain lake", c: "linear-gradient(135deg,#a1c4fd,#c2e9fb)" },
-    { t: "City lights", c: "linear-gradient(135deg,#667eea,#764ba2)" },
-    { t: "Garden path", c: "linear-gradient(135deg,#d4fc79,#96e6a1)" },
-    { t: "Snow day", c: "linear-gradient(135deg,#e0eafc,#cfdef3)" },
-    { t: "Beach walk", c: "linear-gradient(135deg,#fbc2eb,#a6c1ee)" },
+    { key: "channel.photo.p1", c: "linear-gradient(135deg,#f6d365,#fda085)" },
+    { key: "channel.photo.p2", c: "linear-gradient(135deg,#a1c4fd,#c2e9fb)" },
+    { key: "channel.photo.p3", c: "linear-gradient(135deg,#667eea,#764ba2)" },
+    { key: "channel.photo.p4", c: "linear-gradient(135deg,#d4fc79,#96e6a1)" },
+    { key: "channel.photo.p5", c: "linear-gradient(135deg,#e0eafc,#cfdef3)" },
+    { key: "channel.photo.p6", c: "linear-gradient(135deg,#fbc2eb,#a6c1ee)" },
   ];
 
   return (
     <div className="max-w-4xl mx-auto py-4 sm:py-8">
       <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
         <Image className="w-6 h-6" style={{ color: channel.accent }} />
-        Photo Album
+        {t("channel.photo.title")}
       </h1>
-      <p className="mt-1 text-sm text-wii-muted">Flip through soft memory tiles — no SD card required.</p>
+      <p className="mt-1 text-sm text-wii-muted">{t("channel.photo.sub")}</p>
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         {photos.map((p) => (
-          <Panel key={p.t} className="overflow-hidden group">
+          <Panel key={p.key} className="overflow-hidden group">
             <div
               className="aspect-[4/3] transition-transform duration-300 group-hover:scale-[1.03]"
               style={{ background: p.c }}
             />
-            <div className="px-3 py-2.5 text-sm font-medium text-wii-fg">{p.t}</div>
+            <div className="px-3 py-2.5 text-sm font-medium text-wii-fg">{t(p.key)}</div>
           </Panel>
         ))}
       </div>
@@ -210,33 +216,33 @@ function PhotoBody({ channel }: { channel: ChannelDef }) {
   );
 }
 
-function NewsBody({ channel }: { channel: ChannelDef }) {
-  const items = [
-    { region: "World", title: "Clear skies expected across coastal regions this week" },
-    { region: "Science", title: "New telescope captures first light of a distant nebula" },
-    { region: "Culture", title: "Local festival draws record crowds to the plaza" },
-    { region: "Sports", title: "Underdogs clinch the final in a last-minute finish" },
-  ];
+const NEWS_ITEMS = [
+  { region: "channel.news.region.world", title: "channel.news.h1" },
+  { region: "channel.news.region.science", title: "channel.news.h2" },
+  { region: "channel.news.region.culture", title: "channel.news.h3" },
+  { region: "channel.news.region.sports", title: "channel.news.h4" },
+] as const;
 
+function NewsBody({ channel }: { channel: ChannelDef }) {
   return (
     <div className="max-w-3xl mx-auto py-4 sm:py-8">
       <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
         <Newspaper className="w-6 h-6" style={{ color: channel.accent }} />
-        Today's Headlines
+        {t("channel.news.title")}
       </h1>
-      <p className="mt-1 text-sm text-wii-muted">A calm feed of sample stories for your living room.</p>
+      <p className="mt-1 text-sm text-wii-muted">{t("channel.news.sub")}</p>
       <div className="mt-6 space-y-3">
-        {items.map((item) => (
+        {NEWS_ITEMS.map((item) => (
           <Panel key={item.title} className="px-4 py-3.5 sm:px-5 flex gap-4 items-start">
             <div
               className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white"
               style={{ background: channel.accent }}
             >
-              {item.region.slice(0, 2).toUpperCase()}
+              {t(item.region).slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <div className="text-[0.7rem] font-semibold uppercase tracking-wider text-wii-muted">{item.region}</div>
-              <div className="mt-0.5 font-medium text-wii-fg leading-snug">{item.title}</div>
+              <div className="text-[0.7rem] font-semibold uppercase tracking-wider text-wii-muted">{t(item.region)}</div>
+              <div className="mt-0.5 font-medium text-wii-fg leading-snug">{t(item.title)}</div>
             </div>
           </Panel>
         ))}
@@ -245,41 +251,41 @@ function NewsBody({ channel }: { channel: ChannelDef }) {
   );
 }
 
-function ForecastBody({ channel }: { channel: ChannelDef }) {
-  const days = [
-    { d: "Mon", t: "22°", i: "Sunny" },
-    { d: "Tue", t: "19°", i: "Clouds" },
-    { d: "Wed", t: "17°", i: "Showers" },
-    { d: "Thu", t: "20°", i: "Clear" },
-    { d: "Fri", t: "21°", i: "Breezy" },
-  ];
+const FORECAST_DAYS = [
+  { day: "channel.forecast.mon", t: "22°", icon: "channel.forecast.sunny" },
+  { day: "channel.forecast.tue", t: "19°", icon: "channel.forecast.clouds" },
+  { day: "channel.forecast.wed", t: "17°", icon: "channel.forecast.showers" },
+  { day: "channel.forecast.thu", t: "20°", icon: "channel.forecast.clear" },
+  { day: "channel.forecast.fri", t: "21°", icon: "channel.forecast.breezy" },
+] as const;
 
+function ForecastBody({ channel }: { channel: ChannelDef }) {
   return (
     <div className="max-w-3xl mx-auto py-4 sm:py-8">
       <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
         <CloudSun className="w-6 h-6" style={{ color: channel.accent }} />
-        Local Forecast
+        {t("channel.forecast.title")}
       </h1>
-      <p className="mt-1 text-sm text-wii-muted">Sample weather for a gentle afternoon.</p>
+      <p className="mt-1 text-sm text-wii-muted">{t("channel.forecast.sub")}</p>
       <Panel className="mt-6 p-5 sm:p-6">
         <div className="flex items-end gap-3">
           <div className="text-5xl sm:text-6xl font-semibold tracking-tight" style={{ color: channel.accent }}>
             21°
           </div>
           <div className="pb-1">
-            <div className="font-semibold text-lg">Partly cloudy</div>
-            <div className="text-sm text-wii-muted">Feels like 20° · Light breeze</div>
+            <div className="font-semibold text-lg">{t("channel.forecast.current")}</div>
+            <div className="text-sm text-wii-muted">{t("channel.forecast.feels")}</div>
           </div>
         </div>
         <div className="mt-6 grid grid-cols-5 gap-2">
-          {days.map((day) => (
+          {FORECAST_DAYS.map((day) => (
             <div
-              key={day.d}
+              key={day.day}
               className="rounded-xl bg-wii-bg-soft/80 px-1 py-3 text-center border border-white/60"
             >
-              <div className="text-xs font-semibold text-wii-muted">{day.d}</div>
+              <div className="text-xs font-semibold text-wii-muted">{t(day.day)}</div>
               <div className="mt-2 text-sm font-semibold">{day.t}</div>
-              <div className="mt-1 text-[0.65rem] text-wii-subtle leading-tight">{day.i}</div>
+              <div className="mt-1 text-[0.65rem] text-wii-subtle leading-tight">{t(day.icon)}</div>
             </div>
           ))}
         </div>
@@ -293,9 +299,9 @@ function InternetBody({ channel }: { channel: ChannelDef }) {
     <div className="max-w-3xl mx-auto py-4 sm:py-8">
       <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
         <Globe className="w-6 h-6" style={{ color: channel.accent }} />
-        Internet Channel
+        {t("channel.internet.title")}
       </h1>
-      <p className="mt-1 text-sm text-wii-muted">A living-room browser frame — demo only.</p>
+      <p className="mt-1 text-sm text-wii-muted">{t("channel.internet.sub")}</p>
       <Panel className="mt-6 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2.5 bg-wii-bg-soft/90 border-b border-wii-tile-edge/30">
           <div className="flex gap-1.5">
@@ -309,9 +315,9 @@ function InternetBody({ channel }: { channel: ChannelDef }) {
         </div>
         <div className="p-6 sm:p-10 text-center min-h-[220px] flex flex-col items-center justify-center">
           <ChannelArt kind="internet" accent={channel.accent} accentSoft={channel.accentSoft} size="hero" />
-          <p className="mt-4 font-semibold text-lg">Hello from the web</p>
+          <p className="mt-4 font-semibold text-lg">{t("channel.internet.hello")}</p>
           <p className="mt-1 text-sm text-wii-muted max-w-sm">
-            Bookmarks, zoom, and soft page loads — imagined for the couch.
+            {t("channel.internet.helloSub")}
           </p>
         </div>
       </Panel>
@@ -326,13 +332,13 @@ function VotesBody({ channel }: { channel: ChannelDef }) {
 
   return (
     <div className="max-w-xl mx-auto py-4 sm:py-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-center">Everybody Votes</h1>
-      <p className="mt-2 text-center text-wii-muted">Which snack wins movie night?</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-center">{t("channel.votes.title")}</h1>
+      <p className="mt-2 text-center text-wii-muted">{t("channel.votes.sub")}</p>
       <Panel className="mt-6 p-5 sm:p-6 space-y-4">
         {(
           [
-            { id: "a" as const, label: "Popcorn", pct: a },
-            { id: "b" as const, label: "Cookies", pct: b },
+            { id: "a" as const, labelKey: "channel.votes.popcorn", pct: a },
+            { id: "b" as const, labelKey: "channel.votes.cookies", pct: b },
           ] as const
         ).map((opt) => (
           <button
@@ -343,7 +349,7 @@ function VotesBody({ channel }: { channel: ChannelDef }) {
             data-active={choice === opt.id ? "true" : "false"}
           >
             <div className="flex justify-between text-sm font-semibold">
-              <span>{opt.label}</span>
+              <span>{t(opt.labelKey)}</span>
               <span style={{ color: channel.accent }}>{opt.pct}%</span>
             </div>
             <div className="mt-2 h-2.5 rounded-full bg-wii-bg-soft overflow-hidden">
@@ -355,37 +361,37 @@ function VotesBody({ channel }: { channel: ChannelDef }) {
           </button>
         ))}
         <p className="text-xs text-center text-wii-subtle pt-1">
-          {choice ? "Thanks for voting!" : "Tap an option to cast your vote."}
+          {choice ? t("channel.votes.thanks") : t("channel.votes.tap")}
         </p>
       </Panel>
     </div>
   );
 }
 
-function MessageBody({ channel }: { channel: ChannelDef }) {
-  const notes = [
-    { day: "27", title: "Game night", body: "Bring controllers — rematch night." },
-    { day: "28", title: "Photo dump", body: "Load summer album onto the SD card." },
-    { day: "30", title: "Shop sale", body: "Check Classics aisle for demos." },
-  ];
+const MESSAGE_NOTES = [
+  { day: "27", title: "channel.message.n1.title", body: "channel.message.n1.body" },
+  { day: "28", title: "channel.message.n2.title", body: "channel.message.n2.body" },
+  { day: "30", title: "channel.message.n3.title", body: "channel.message.n3.body" },
+] as const;
 
+function MessageBody({ channel }: { channel: ChannelDef }) {
   return (
     <div className="max-w-2xl mx-auto py-4 sm:py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">{channel.name}</h1>
-      <p className="mt-1 text-sm text-wii-muted">Notes pinned to your calendar board.</p>
+      <h1 className="text-2xl font-semibold tracking-tight">{t(channel.nameKey)}</h1>
+      <p className="mt-1 text-sm text-wii-muted">{t("channel.message.sub")}</p>
       <div className="mt-6 space-y-3">
-        {notes.map((n) => (
+        {MESSAGE_NOTES.map((n) => (
           <Panel key={n.day} className="p-4 flex gap-4">
             <div
               className="w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 text-white"
               style={{ background: channel.accent }}
             >
-              <span className="text-[0.65rem] font-semibold uppercase opacity-90">Jul</span>
+              <span className="text-[0.65rem] font-semibold uppercase opacity-90">{t("channel.message.month")}</span>
               <span className="text-xl font-bold leading-none">{n.day}</span>
             </div>
             <div>
-              <div className="font-semibold">{n.title}</div>
-              <div className="text-sm text-wii-muted mt-0.5">{n.body}</div>
+              <div className="font-semibold">{t(n.title)}</div>
+              <div className="text-sm text-wii-muted mt-0.5">{t(n.body)}</div>
             </div>
           </Panel>
         ))}
@@ -398,12 +404,12 @@ function HomeBody({ channel }: { channel: ChannelDef }) {
   return (
     <div className="max-w-2xl mx-auto py-8 text-center">
       <ChannelArt kind={channel.kind} accent={channel.accent} accentSoft={channel.accentSoft} size="screen" />
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight">Home Channel</h1>
+      <h1 className="mt-6 text-2xl font-semibold tracking-tight">{t(channel.nameKey)}</h1>
       <p className="mt-2 text-wii-muted max-w-md mx-auto leading-relaxed">
-        A cozy shelf for extras, tools, and experiments that live alongside your main channels.
+        {t("channel.home.body")}
       </p>
       <Panel className="mt-6 px-5 py-4 text-sm text-wii-muted inline-block">
-        Demo hub · no extra software installed
+        {t("channel.home.demoHub")}
       </Panel>
     </div>
   );
@@ -413,8 +419,8 @@ function GenericBody({ channel }: { channel: ChannelDef }) {
   return (
     <div className="max-w-xl mx-auto py-12 text-center">
       <ChannelArt kind={channel.kind} accent={channel.accent} accentSoft={channel.accentSoft} size="screen" />
-      <h1 className="mt-6 text-2xl font-semibold">{channel.name}</h1>
-      <p className="mt-2 text-wii-muted">{channel.description}</p>
+      <h1 className="mt-6 text-2xl font-semibold">{t(channel.nameKey)}</h1>
+      <p className="mt-2 text-wii-muted">{t(channel.descriptionKey)}</p>
     </div>
   );
 }

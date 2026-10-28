@@ -35,6 +35,9 @@ export const en: Record<string, string> = {
   "menu.sdEmpty": "No SD Card inserted. Save data, photos, and channel backups would appear here.",
   "menu.close": "Close",
 
+  // ---- Channel tiles -----------------------------------------------------
+  "tile.emptySlot": "Empty channel slot {id}",
+
   // ---- Channel modal -----------------------------------------------------
   "modal.channel": "Channel: {name}",
   "modal.start": "Start",
