@@ -7,12 +7,20 @@ import { expect, test } from "playwright/test";
  * (open/close/focus trap/focus restore — #9) and localStorage menu
  * persistence across reloads (#10).
  *
+ * i18n (#18): every selector targets a `data-testid` (plus structural
+ * roles/attributes like `data-channel-id`) — never the translatable UI
+ * copy — so a second locale can drop in without touching these specs.
+ *
  * The dev server is managed by `webServer` in playwright.config.ts.
  */
 
-const LISTBOX = '[role="listbox"][aria-label="Channel grid"]';
-const TILE = '[role="option"]';
+const LISTBOX = '[data-testid="channel-grid"]';
+const TILE = '[data-testid="wii-tile"]';
 const FOCUSED_TILE = `${TILE}[data-focused="true"]`;
+const MODAL = '[data-testid="channel-modal"]';
+const MODAL_START = '[data-testid="channel-modal-start"]';
+const MODAL_BACK = '[data-testid="channel-modal-back"]';
+const CHANNEL_EXIT = '[data-testid="channel-screen-exit"]';
 
 /**
  * Wait until the menu is fully ready: a tile is highlighted AND holds DOM
@@ -37,6 +45,7 @@ test.describe("menu boot & semantics", () => {
     await gotoMenu(page);
     const listbox = page.locator(LISTBOX);
     await expect(listbox).toBeVisible();
+    await expect(listbox).toHaveAttribute("role", "listbox");
     await expect(listbox.locator(TILE)).toHaveCount(12);
     const focused = page.locator(FOCUSED_TILE);
     await expect(focused).toHaveCount(1);
@@ -84,11 +93,12 @@ test.describe("channel modal (a11y #9)", () => {
   test("Enter opens the channel modal; focus moves inside the dialog", async ({ page }) => {
     await gotoMenu(page);
     await page.keyboard.press("Enter");
-    const dialog = page.getByRole("dialog", { name: "Channel: Disc Channel" });
+    const dialog = page.locator(MODAL);
     await expect(dialog).toBeVisible();
     await expect(dialog).toHaveAttribute("aria-modal", "true");
-    // Disc channel is not launchable -> single "Back" control, focused.
-    await expect(dialog.getByRole("button", { name: "Back" })).toBeFocused();
+    // Disc channel is not launchable -> single Back control, focused.
+    await expect(page.locator(MODAL_START)).toHaveCount(0);
+    await expect(page.locator(MODAL_BACK)).toBeFocused();
     // The grid behind the modal exposes no tab stops while it is open.
     await expect(page.locator(`${TILE}[tabindex="0"]`)).toHaveCount(0);
   });
@@ -97,9 +107,9 @@ test.describe("channel modal (a11y #9)", () => {
     await gotoMenu(page);
     const opener = page.locator(FOCUSED_TILE);
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator(MODAL)).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(MODAL)).toHaveCount(0);
     await expect(opener).toBeFocused();
   });
 
@@ -107,7 +117,7 @@ test.describe("channel modal (a11y #9)", () => {
     await gotoMenu(page);
     await page.keyboard.press("ArrowRight"); // Mii Channel -> modal has Start + Back
     await page.keyboard.press("Enter");
-    const dialog = page.getByRole("dialog", { name: "Channel: Mii Channel" });
+    const dialog = page.locator(MODAL);
     await expect(dialog).toBeVisible();
     const buttons = dialog.locator("button");
     await expect(buttons).toHaveCount(2);
@@ -122,11 +132,11 @@ test.describe("channel modal (a11y #9)", () => {
     await gotoMenu(page);
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("Enter");
-    const dialog = page.getByRole("dialog", { name: "Channel: Mii Channel" });
-    await dialog.getByRole("button", { name: "Start" }).click();
-    const exit = page.getByRole("button", { name: "Return to Wii Menu" });
+    await expect(page.locator(MODAL)).toBeVisible();
+    await page.locator(MODAL_START).click();
+    const exit = page.locator(CHANNEL_EXIT);
     await expect(exit).toBeVisible();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(MODAL)).toHaveCount(0);
     await exit.click();
     await expect(page.locator(FOCUSED_TILE)).toHaveCount(1);
   });
@@ -137,7 +147,7 @@ test.describe("menu persistence across reloads (#10)", () => {
     await gotoMenu(page);
     await page.keyboard.press("]"); // page index 1
     await page.keyboard.press("ArrowDown"); // slot 4
-    await page.keyboard.press("ArrowRight"); // slot 5 -> "Mii Parade" (p2-6)
+    await page.keyboard.press("ArrowRight"); // slot 5 -> (p2-6)
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem("wii.menu")))
       .toContain('"focusIndex":5');
@@ -152,19 +162,19 @@ test.describe("menu persistence across reloads (#10)", () => {
   test("an open channel modal is restored after reload", async ({ page }) => {
     await gotoMenu(page);
     await page.keyboard.press("Enter"); // Disc Channel modal
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator(MODAL)).toBeVisible();
     await page.reload();
     // Deferred re-open fires after the boot fade-in.
-    await expect(page.getByRole("dialog", { name: "Channel: Disc Channel" })).toBeVisible();
+    await expect(page.locator(MODAL)).toBeVisible();
   });
 
   test("a running channel screen is restored after reload", async ({ page }) => {
     await gotoMenu(page);
     await page.keyboard.press("ArrowRight"); // Mii Channel
     await page.keyboard.press("Enter");
-    const dialog = page.getByRole("dialog", { name: "Channel: Mii Channel" });
-    await dialog.getByRole("button", { name: "Start" }).click();
-    const exit = page.getByRole("button", { name: "Return to Wii Menu" });
+    await expect(page.locator(MODAL)).toBeVisible();
+    await page.locator(MODAL_START).click();
+    const exit = page.locator(CHANNEL_EXIT);
     await expect(exit).toBeVisible();
     await page.reload();
     await expect(exit).toBeVisible();
@@ -173,15 +183,15 @@ test.describe("menu persistence across reloads (#10)", () => {
   test("a closed channel is NOT resurrected after reload", async ({ page }) => {
     await gotoMenu(page);
     await page.keyboard.press("Enter"); // open Disc modal
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator(MODAL)).toBeVisible();
     await page.keyboard.press("Escape"); // close it again
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(MODAL)).toHaveCount(0);
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem("wii.menu")))
       .toContain('"open":null');
     await page.reload();
     await menuReady(page);
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(MODAL)).toHaveCount(0);
     await expect(page.locator(FOCUSED_TILE)).toHaveAttribute("data-channel-id", "disc");
   });
 

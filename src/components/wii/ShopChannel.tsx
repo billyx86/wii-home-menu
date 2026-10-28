@@ -282,7 +282,7 @@ export function ShopChannel() {
   const [view, setView] = useState<ShopView>({ kind: "welcome" });
   const [points, setPoints] = useState(saved.points);
   const [owned, setOwned] = useState<string[]>(saved.owned);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ key: string; text: string } | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Persist points/owned whenever they change; no-ops when storage is
@@ -302,9 +302,9 @@ export function ShopChannel() {
     });
   }, []);
 
-  const showToast = (msg: string) => {
+  const showToast = (key: string, msg: string) => {
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
-    setToast(msg);
+    setToast({ key, text: msg });
     toastTimerRef.current = setTimeout(() => setToast(null), 2200);
   };
 
@@ -381,22 +381,22 @@ export function ShopChannel() {
             if (!title) return;
             if (owned.includes(title.id)) {
               playSelect();
-              showToast(t("shop.toast.reowned"));
+              showToast("shop.toast.reowned", t("shop.toast.reowned"));
               return;
             }
             if (title.price > points) {
               playBack();
-              showToast(t("shop.toast.insufficient"));
+              showToast("shop.toast.insufficient", t("shop.toast.insufficient"));
               return;
             }
             playOpen();
             setPoints((p) => p - title.price);
             setOwned((o) => [...o, title.id]);
-            showToast(t("shop.toast.downloaded", { title: t(title.nameKey) }));
+            showToast("shop.toast.downloaded", t("shop.toast.downloaded", { title: t(title.nameKey) }));
           }}
           onGift={() => {
             playSelect();
-            showToast(t("shop.toast.gift"));
+            showToast("shop.toast.gift", t("shop.toast.gift"));
           }}
         />
       )}
@@ -408,7 +408,7 @@ export function ShopChannel() {
           onAdd={(n) => {
             playOpen();
             setPoints((p) => p + n);
-            showToast(t("shop.toast.added", { points: n.toLocaleString() }));
+            showToast("shop.toast.added", t("shop.toast.added", { points: n.toLocaleString() }));
           }}
         />
       )}
@@ -428,8 +428,8 @@ export function ShopChannel() {
       {view.kind === "guide" && <GuideScreen onBack={back} />}
 
       {toast && (
-        <div className="shop-toast" role="status" data-testid="shop-toast">
-          {toast}
+        <div className="shop-toast" role="status" data-testid="shop-toast" data-toast-key={toast.key}>
+          {toast.text}
         </div>
       )}
     </div>
@@ -719,7 +719,11 @@ function DetailScreen({
 
         <div className="shop-detail-balance" data-testid="shop-detail-balance">
           {t("shop.yourBalance", { points: points.toLocaleString() })}
-          {owned && <span className="shop-owned-tag ml-2">{t("shop.onConsole")}</span>}
+          {owned && (
+            <span className="shop-owned-tag ml-2" data-testid="shop-owned-tag">
+              {t("shop.onConsole")}
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -292,6 +292,7 @@ export function WiiMenu() {
               className="grid grid-cols-4 gap-1.5 sm:gap-3 md:gap-4 max-w-4xl mx-auto"
               role="listbox"
               aria-label={t("menu.channelGrid")}
+              data-testid="channel-grid"
             >
               {pageChannels.map((ch, i) => (
                 <div key={ch.id} role="presentation">
