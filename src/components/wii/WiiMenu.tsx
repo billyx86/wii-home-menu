@@ -12,6 +12,7 @@ import {
   setWiiMuted,
   setWiiVolume,
 } from "./audio";
+import { t } from "../../lib/i18n";
 import { CHANNEL_PAGES, PAGE_COUNT, type ChannelDef } from "./channels";
 import { ChannelModal } from "./ChannelModal";
 import { ChannelScreen } from "./ChannelScreen";
@@ -55,11 +56,11 @@ export function WiiMenu() {
   const pageChannels = CHANNEL_PAGES[page] ?? CHANNEL_PAGES[0];
 
   useEffect(() => {
-    const t = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setBooted(true);
       playBoot();
     }, 400);
-    return () => window.clearTimeout(t);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // Re-open a channel that was open last session, once the stage is visible.
@@ -265,9 +266,9 @@ export function WiiMenu() {
               </span>
             </div>
             <div className="leading-tight">
-              <div className="text-sm font-semibold text-wii-fg">Home Menu</div>
+              <div className="text-sm font-semibold text-wii-fg" data-testid="wii-menu-title">{t("menu.homeTitle")}</div>
               <div className="text-[0.7rem] text-wii-muted">
-                Page {page + 1} of {PAGE_COUNT}
+                {t("menu.pageOf", { current: page + 1, total: PAGE_COUNT })}
               </div>
             </div>
           </div>
@@ -279,7 +280,7 @@ export function WiiMenu() {
             type="button"
             className="wii-page-btn shrink-0"
             disabled={page <= 0}
-            aria-label="Previous page"
+            aria-label={t("menu.previousPage")}
             onClick={() => changePage(page - 1)}
           >
             <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -290,7 +291,8 @@ export function WiiMenu() {
               ref={gridRef}
               className="grid grid-cols-4 gap-1.5 sm:gap-3 md:gap-4 max-w-4xl mx-auto"
               role="listbox"
-              aria-label="Channel grid"
+              aria-label={t("menu.channelGrid")}
+              data-testid="channel-grid"
             >
               {pageChannels.map((ch, i) => (
                 <div key={ch.id} role="presentation">
@@ -315,7 +317,7 @@ export function WiiMenu() {
                   type="button"
                   className="wii-dot"
                   data-active={page === i ? "true" : "false"}
-                  aria-label={`Go to page ${i + 1}`}
+                  aria-label={t("menu.goToPage", { page: i + 1 })}
                   aria-current={page === i ? "page" : undefined}
                   onClick={() => changePage(i)}
                 />
@@ -327,7 +329,7 @@ export function WiiMenu() {
             type="button"
             className="wii-page-btn shrink-0"
             disabled={page >= PAGE_COUNT - 1}
-            aria-label="Next page"
+            aria-label={t("menu.nextPage")}
             onClick={() => changePage(page + 1)}
           >
             <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -347,7 +349,7 @@ export function WiiMenu() {
                 }}
               >
                 <Settings2 className="w-4 h-4 text-wii-accent-deep" />
-                <span>Settings</span>
+                <span>{t("menu.settings")}</span>
               </button>
               <button
                 type="button"
@@ -359,11 +361,11 @@ export function WiiMenu() {
                 }}
               >
                 <HardDrive className="w-4 h-4 text-wii-accent-deep" />
-                <span>SD Card</span>
+                <span>{t("menu.sdCard")}</span>
               </button>
             </div>
             <div className="hidden md:block text-xs text-wii-muted font-medium shrink-0">
-              Arrows move · Enter opens · [ ] pages
+              {t("menu.controlsHint")}
             </div>
           </div>
         </footer>
@@ -410,21 +412,18 @@ export function WiiMenu() {
               <div className="mx-auto w-16 h-16 rounded-2xl bg-wii-bg-soft flex items-center justify-center mb-4 border border-wii-tile-edge/40">
                 <HardDrive className="w-8 h-8 text-wii-accent-deep" />
               </div>
-              <h2 id="sd-title" className="text-xl font-semibold">
-                SD Card
-              </h2>
-              <p className="mt-2 text-sm text-wii-muted leading-relaxed">
-                No SD Card inserted. Save data, photos, and channel backups would appear here.
-              </p>
+              <h2 id="sd-title" className="text-xl font-semibold">{t("menu.sdTitle")}</h2>
+              <p className="mt-2 text-sm text-wii-muted leading-relaxed">{t("menu.sdEmpty")}</p>
               <button
                 type="button"
                 className="wii-primary-btn mt-6 w-full"
+                data-testid="sd-card-close"
                 onClick={() => {
                   playBack();
                   setSdOpen(false);
                 }}
               >
-                Close
+                {t("menu.close")}
               </button>
             </div>
           </div>

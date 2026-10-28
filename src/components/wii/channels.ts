@@ -13,12 +13,23 @@ export type ChannelKind =
   | "homebrew"
   | "empty";
 
+/**
+ * A channel slot's metadata.
+ *
+ * Display copy lives in the i18n message maps (`src/lib/i18n`) and is
+ * resolved at render time via `t()` — these fields hold message KEYS, not
+ * translated strings, so adding a locale never touches this data file.
+ * Key convention: `channel.<id>.name|subtitle|description`.
+ */
 export type ChannelDef = {
   id: string;
   kind: ChannelKind;
-  name: string;
-  subtitle: string;
-  description: string;
+  /** i18n key resolving to the channel's display name. */
+  nameKey: string;
+  /** i18n key resolving to the tile/screen subtitle. */
+  subtitleKey: string;
+  /** i18n key resolving to the modal/screen description. */
+  descriptionKey: string;
   accent: string;
   accentSoft: string;
 };
@@ -29,120 +40,108 @@ export const CHANNEL_PAGES: ChannelDef[][] = [
     {
       id: "disc",
       kind: "disc",
-      name: "Disc Channel",
-      subtitle: "Insert a disc",
-      description:
-        "Start software from a disc. When no disc is inserted, this channel waits patiently for your next adventure.",
+      nameKey: "channel.disc.name",
+      subtitleKey: "channel.disc.subtitle",
+      descriptionKey: "channel.disc.description",
       accent: "#5a6a80",
       accentSoft: "#d8e0ea",
     },
     {
       id: "mii",
       kind: "mii",
-      name: "Mii Channel",
-      subtitle: "Create & share",
-      description:
-        "Create cartoon avatars, parade them around, and keep a lively plaza of friends on your console.",
+      nameKey: "channel.mii.name",
+      subtitleKey: "channel.mii.subtitle",
+      descriptionKey: "channel.mii.description",
       accent: "#e8a33a",
       accentSoft: "#fff0d4",
     },
     {
       id: "photo",
       kind: "photo",
-      name: "Photo Channel",
-      subtitle: "Memories",
-      description:
-        "Browse albums, zoom into snapshots, and flip through photos with soft page-turn transitions.",
+      nameKey: "channel.photo.name",
+      subtitleKey: "channel.photo.subtitle",
+      descriptionKey: "channel.photo.description",
       accent: "#4caf82",
       accentSoft: "#d9f5e8",
     },
     {
       id: "news",
       kind: "news",
-      name: "News Channel",
-      subtitle: "Headlines",
-      description:
-        "Catch up on world headlines, regional stories, and a quiet ticker of the day's top items.",
+      nameKey: "channel.news.name",
+      subtitleKey: "channel.news.subtitle",
+      descriptionKey: "channel.news.description",
       accent: "#3a7fd4",
       accentSoft: "#dcecfb",
     },
     {
       id: "forecast",
       kind: "forecast",
-      name: "Forecast Channel",
-      subtitle: "Weather",
-      description:
-        "Check local skies, multi-day outlooks, and a gentle globe of worldwide weather at a glance.",
+      nameKey: "channel.forecast.name",
+      subtitleKey: "channel.forecast.subtitle",
+      descriptionKey: "channel.forecast.description",
       accent: "#39a7d4",
       accentSoft: "#d8f2fb",
     },
     {
       id: "shop",
       kind: "shop",
-      name: "Shop Channel",
-      subtitle: "Browse titles",
-      description:
-        "Discover demos, classics, and downloadable software in a bright boutique of digital shelves.",
+      nameKey: "channel.shop.name",
+      subtitleKey: "channel.shop.subtitle",
+      descriptionKey: "channel.shop.description",
       accent: "#d45a8a",
       accentSoft: "#fce0ec",
     },
     {
       id: "internet",
       kind: "internet",
-      name: "Internet Channel",
-      subtitle: "Browse the web",
-      description:
-        "Surf the web with a full-screen browser tailored for the living-room controller experience.",
+      nameKey: "channel.internet.name",
+      subtitleKey: "channel.internet.subtitle",
+      descriptionKey: "channel.internet.description",
       accent: "#5b6fd4",
       accentSoft: "#e0e4fb",
     },
     {
       id: "votes",
       kind: "votes",
-      name: "Votes Channel",
-      subtitle: "What do you think?",
-      description:
-        "Answer daily polls, see how others voted, and watch the world tally opinions in real time.",
+      nameKey: "channel.votes.name",
+      subtitleKey: "channel.votes.subtitle",
+      descriptionKey: "channel.votes.description",
       accent: "#7a5fd4",
       accentSoft: "#e8e0fb",
     },
     {
       id: "message",
       kind: "message",
-      name: "Message Board",
-      subtitle: "Notes & calendar",
-      description:
-        "Leave notes on the calendar, send messages to friends, and keep track of console events.",
+      nameKey: "channel.message.name",
+      subtitleKey: "channel.message.subtitle",
+      descriptionKey: "channel.message.description",
       accent: "#c46a3a",
       accentSoft: "#fce8d8",
     },
     {
       id: "calendar",
       kind: "calendar",
-      name: "Today",
-      subtitle: "Date & events",
-      description:
-        "See today's date, upcoming reminders, and soft seasonal decorations on your board.",
+      nameKey: "channel.calendar.name",
+      subtitleKey: "channel.calendar.subtitle",
+      descriptionKey: "channel.calendar.description",
       accent: "#3a9a7a",
       accentSoft: "#d8f5ea",
     },
     {
       id: "checkmii",
       kind: "checkmii",
-      name: "Check Mii Out",
-      subtitle: "Plaza posts",
-      description:
-        "Browse popular Miis from around the world and post your own creations for others to find.",
+      nameKey: "channel.checkmii.name",
+      subtitleKey: "channel.checkmii.subtitle",
+      descriptionKey: "channel.checkmii.description",
       accent: "#d48a3a",
       accentSoft: "#fcebd4",
     },
     {
       id: "homebrew",
       kind: "homebrew",
-      name: "Home Channel",
-      subtitle: "Extras",
-      description:
-        "A friendly hub for demos, tools, and custom experiences living on your menu.",
+      nameKey: "channel.homebrew.name",
+      subtitleKey: "channel.homebrew.subtitle",
+      descriptionKey: "channel.homebrew.description",
       accent: "#3a8a4a",
       accentSoft: "#d8f0dc",
     },
@@ -151,54 +150,54 @@ export const CHANNEL_PAGES: ChannelDef[][] = [
     {
       id: "p2-1",
       kind: "photo",
-      name: "Album B",
-      subtitle: "More photos",
-      description: "A second photo shelf for backup albums and shared SD card pictures.",
+      nameKey: "channel.p2-1.name",
+      subtitleKey: "channel.p2-1.subtitle",
+      descriptionKey: "channel.p2-1.description",
       accent: "#4caf82",
       accentSoft: "#d9f5e8",
     },
     {
       id: "p2-2",
       kind: "news",
-      name: "Sports Feed",
-      subtitle: "Scores",
-      description: "Quick scores and sports headlines from around the globe.",
+      nameKey: "channel.p2-2.name",
+      subtitleKey: "channel.p2-2.subtitle",
+      descriptionKey: "channel.p2-2.description",
       accent: "#2f8f5a",
       accentSoft: "#d8f5e4",
     },
     {
       id: "p2-3",
       kind: "forecast",
-      name: "Sky Watch",
-      subtitle: "Hourly",
-      description: "Hour-by-hour conditions with gentle icons for sun, cloud, and rain.",
+      nameKey: "channel.p2-3.name",
+      subtitleKey: "channel.p2-3.subtitle",
+      descriptionKey: "channel.p2-3.description",
       accent: "#39a7d4",
       accentSoft: "#d8f2fb",
     },
     {
       id: "p2-4",
       kind: "shop",
-      name: "Classics",
-      subtitle: "Virtual titles",
-      description: "A quiet aisle of classic software ready to download and play.",
+      nameKey: "channel.p2-4.name",
+      subtitleKey: "channel.p2-4.subtitle",
+      descriptionKey: "channel.p2-4.description",
       accent: "#d45a8a",
       accentSoft: "#fce0ec",
     },
     {
       id: "p2-5",
       kind: "internet",
-      name: "Bookmarks",
-      subtitle: "Saved pages",
-      description: "Your favorite pages, pinned for one-click living-room browsing.",
+      nameKey: "channel.p2-5.name",
+      subtitleKey: "channel.p2-5.subtitle",
+      descriptionKey: "channel.p2-5.description",
       accent: "#5b6fd4",
       accentSoft: "#e0e4fb",
     },
     {
       id: "p2-6",
       kind: "mii",
-      name: "Mii Parade",
-      subtitle: "Watch them walk",
-      description: "A looping parade of Miis strolling across a soft plaza stage.",
+      nameKey: "channel.p2-6.name",
+      subtitleKey: "channel.p2-6.subtitle",
+      descriptionKey: "channel.p2-6.description",
       accent: "#e8a33a",
       accentSoft: "#fff0d4",
     },
@@ -229,9 +228,9 @@ function emptySlot(id: string): ChannelDef {
   return {
     id,
     kind: "empty",
-    name: "",
-    subtitle: "Empty slot",
-    description: "This channel slot is empty. Download software or rearrange channels to fill it.",
+    nameKey: "channel.empty.name",
+    subtitleKey: "channel.empty.subtitle",
+    descriptionKey: "channel.empty.description",
     accent: "#9aa3b2",
     accentSoft: "#e8ecf1",
   };

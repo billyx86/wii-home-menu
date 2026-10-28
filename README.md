@@ -86,11 +86,45 @@ CI (GitHub Actions) runs the same four checks — typecheck, lint, test, build �
 3. Pick **Virtual Console**, **WiiWare**, or **Wii Channels**  
 4. Browse **Popular Titles**, open a row, **Download** (demo Wii Points) or **Gift**  
 
+## i18n
+
+All Home Menu + Shop Channel UI copy flows through a tiny `t(key, vars?)` resolver instead of hardcoded English strings.
+
+- **`t(key, vars?)`** resolves a dot-namespaced key (e.g. `shop.toast.downloaded`) against the active locale's message map and interpolates `{placeholder}` slots from `vars`. Unknown keys fall back to the key itself so a missing translation is visible, not silent.
+- **The active locale lives in a zustand store** (`src/lib/i18n/`), so `t()` works inside components *and* outside React (event handlers, toasts).
+- **English ships by default** (`en.ts`). Data arrays carry `*Key` fields (e.g. `nameKey: "channel.mii.name"`), not literal strings, so a channel's copy is swapped by changing one string.
+- **E2E targets `data-testid`, never translated copy** — selectors like `[data-testid="shop-download-btn"]` and toast identity via `data-toast-key` keep the Playwright suite green under any locale.
+
+### How to add a locale
+
+A new language is a pure data drop-in — zero component changes:
+
+1. **Create the map** — add `src/lib/i18n/de.ts` (or `fr.ts`, …) exporting a `MessageMap` with **every key** from `en.ts`, translated. Copy `en.ts` and replace the values.
+2. **Register it** — in `src/lib/i18n/index.ts`, add the import, add the tag to the `Locale` union (`type Locale = "en" | "de"`), and add `de` to `REGISTRY`.
+3. **Drift-guard enforces coverage** — `src/lib/i18n/drift.test.ts` scans the whole codebase for every referenced i18n key and asserts each one exists in the map. A missing/misspelled key fails the unit suite, so it can't ship silently.
+4. **(Optional) switch at runtime** — `useI18n.getState().setLocale("de")` (or a future picker) re-renders the UI in the new language.
+
+```ts
+// 1. src/lib/i18n/de.ts
+import type { MessageMap } from "./index";
+export const de: MessageMap = {
+  "shop.start": "Einkaufen starten",
+  "shop.toast.downloaded": "Heruntergeladen · {title}",
+  // …every key from en.ts
+};
+
+// 2. src/lib/i18n/index.ts
+import { de } from "./de";
+export type Locale = "en" | "de";
+const REGISTRY: Record<Locale, MessageMap> = { en, de };
+```
+
 ## Project layout
 
 ```text
 src/
   components/wii/   # Home Menu, channels, Shop Channel
+  lib/i18n/         # t() resolver, en map, zustand locale store, drift-guard
   routes/           # TanStack Start routes
   styles.css        # Design tokens + Wii / Shop chrome
 ```

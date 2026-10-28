@@ -1,3 +1,4 @@
+import { t } from "../../lib/i18n";
 import { ChannelArt } from "./ChannelArt";
 import type { ChannelDef } from "./channels";
 
@@ -19,9 +20,14 @@ type Props = {
  * a tab stop, so Tab enters/leaves the grid as one widget while arrow keys
  * move between options. `aria-selected` mirrors the menu's highlight so
  * screen readers announce "selected / not selected".
+ *
+ * i18n (#18): the display name resolves through `t()` from the channel's
+ * `nameKey` — e2e targets this tile via `data-testid` + `data-channel-id`,
+ * never via the (translatable) name text.
  */
 export function ChannelTile({ channel, focused, tabIndex, onFocus, onOpen, onHoverSound }: Props) {
   const empty = channel.kind === "empty";
+  const name = t(channel.nameKey);
 
   return (
     <button
@@ -29,7 +35,8 @@ export function ChannelTile({ channel, focused, tabIndex, onFocus, onOpen, onHov
       role="option"
       aria-selected={focused}
       tabIndex={tabIndex}
-      aria-label={empty ? `Empty channel slot ${channel.id}` : channel.name}
+      aria-label={empty ? t("tile.emptySlot", { id: channel.id }) : name}
+      data-testid="wii-tile"
       className={`wii-tile aspect-[4/3] w-full ${empty ? "wii-tile-empty" : ""} ${channel.kind === "disc" ? "wii-tile-disc" : ""}`}
       data-focused={focused ? "true" : "false"}
       data-channel-id={channel.id}
@@ -53,7 +60,7 @@ export function ChannelTile({ channel, focused, tabIndex, onFocus, onOpen, onHov
               accentSoft={channel.accentSoft}
               spinning={channel.kind === "disc" && focused}
             />
-            <span className="wii-tile-label">{channel.name}</span>
+            <span className="wii-tile-label">{name}</span>
           </>
         )}
       </div>
