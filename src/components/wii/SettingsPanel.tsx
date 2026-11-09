@@ -79,6 +79,7 @@ export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose 
               min={0}
               max={100}
               value={Math.round(volume * 100)}
+              data-testid="settings-volume-slider"
               onChange={(e) => {
                 const v = Number(e.target.value) / 100;
                 setWiiVolume(v);
