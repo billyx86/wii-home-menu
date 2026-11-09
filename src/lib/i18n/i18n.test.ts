@@ -51,7 +51,10 @@ describe("locale store", () => {
   });
 
   it("setLocale switches the resolver to the registered map", () => {
-    // Only `en` is registered today; switching to it is a no-op round-trip.
+    useI18n.getState().setLocale("de");
+    expect(getLocale()).toBe("de");
+    expect(t("modal.back")).toBe("Zurück");
+    expect(t("settings.title")).toBe("Wii-Einstellungen");
     useI18n.getState().setLocale("en");
     expect(getLocale()).toBe("en");
     expect(t("modal.back")).toBe("Back");

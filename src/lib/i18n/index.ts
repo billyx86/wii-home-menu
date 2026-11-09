@@ -19,13 +19,21 @@
  */
 import { create } from "zustand";
 import { en } from "./en";
+import { de } from "./de";
 
 export type MessageMap = Record<string, string>;
 
 /** Locales with a registered message map. Add new ones in REGISTRY below. */
-export type Locale = "en";
+export type Locale = "en" | "de";
 
-const REGISTRY: Record<Locale, MessageMap> = { en };
+const REGISTRY: Record<Locale, MessageMap> = { en, de };
+
+/**
+ * The registered locale tags, in registry order — the Settings language
+ * picker (#21) renders exactly these, so a new locale becomes reachable in
+ * the UI the moment it is registered here.
+ */
+export const LOCALES = Object.keys(REGISTRY) as Locale[];
 
 /** localStorage key for the persisted locale (#21). */
 const STORAGE_KEY = "wii.locale";

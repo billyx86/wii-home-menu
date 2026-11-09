@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Volume2, VolumeX, X } from "lucide-react";
-import { t } from "../../lib/i18n";
+import { LOCALES, t, useI18n, type Locale } from "../../lib/i18n";
 import { getWiiMuted, getWiiVolume, setWiiMuted, setWiiVolume } from "./audio";
 
 type Props = {
@@ -13,6 +13,8 @@ type Props = {
 };
 
 export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose }: Props) {
+  const locale = useI18n((s) => s.locale);
+  const setLocale = useI18n((s) => s.setLocale);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -87,6 +89,25 @@ export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose 
                 }
               }}
             />
+          </div>
+
+          <div className="wii-settings-panel p-4">
+            <label className="block text-sm font-semibold mb-2" htmlFor="wii-locale">
+              {t("settings.language")}
+            </label>
+            <select
+              id="wii-locale"
+              className="wii-locale-select"
+              value={locale}
+              data-testid="settings-locale-select"
+              onChange={(e) => setLocale(e.target.value as Locale)}
+            >
+              {LOCALES.map((tag) => (
+                <option key={tag} value={tag}>
+                  {t(`settings.language.${tag}`)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="wii-settings-panel p-4 space-y-2">

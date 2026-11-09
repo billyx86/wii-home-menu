@@ -145,6 +145,9 @@ export const en: Record<string, string> = {
   "settings.aboutBody":
     "A fan-made recreation of the classic living-room home menu look and feel — original channel art and layout, no console hardware required.",
   "settings.done": "Done",
+  "settings.language": "Language",
+  "settings.language.en": "English",
+  "settings.language.de": "German",
 
   // ---- Shop: welcome + hub -------------------------------------------------------------
   "shop.title": "Wii Shop Channel",
