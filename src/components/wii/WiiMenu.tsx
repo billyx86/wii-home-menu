@@ -342,6 +342,7 @@ export function WiiMenu() {
               <button
                 type="button"
                 className="wii-bar-btn"
+                data-testid="settings-open"
                 data-active={settingsOpen ? "true" : "false"}
                 onClick={() => {
                   playSelect();

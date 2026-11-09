@@ -506,6 +506,37 @@
   cursor: pointer;
 }
 
+/* Settings panel: language picker (#21) */
+.wii-locale-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-bar);
+  border: none;
+  background: linear-gradient(180deg, #ffffff 0%, #eef2f6 100%);
+  color: var(--color-wii-fg);
+  box-shadow:
+    0 2px 6px rgb(70 90 120 / 0.12),
+    inset 0 0 0 1px rgb(160 172 188 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform var(--motion-quick) var(--ease-wii),
+    box-shadow var(--motion-quick) var(--ease-wii);
+}
+
+.wii-locale-select:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px rgb(70 90 120 / 0.16),
+    inset 0 0 0 1.5px var(--color-wii-accent-soft),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+}
+
 /* Channel running view */
 .wii-channel-screen {
   position: fixed;
