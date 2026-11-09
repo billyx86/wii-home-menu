@@ -27,16 +27,48 @@ export type Locale = "en";
 
 const REGISTRY: Record<Locale, MessageMap> = { en };
 
+/** localStorage key for the persisted locale (#21). */
+const STORAGE_KEY = "wii.locale";
+
+/**
+ * Hydrate the active locale from localStorage at module load, so a choice
+ * made in the language picker survives a reload (#21). Mirrors the
+ * `components/wii/audio.ts` pattern: unknown tags and unreadable storage
+ * fall back to `en` instead of crashing boot.
+ */
+function loadLocale(): Locale {
+  if (typeof window === "undefined") return "en";
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw && raw in REGISTRY) return raw as Locale;
+  } catch {
+    // Unreadable storage (private mode etc.) — default locale.
+  }
+  return "en";
+}
+
+function saveLocale(locale: Locale): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, locale);
+  } catch {
+    // Storage unavailable (private mode etc.) — choice stays in-memory only.
+  }
+}
+
 interface I18nState {
   /** Active locale tag. */
   locale: Locale;
-  /** Switch locale (e.g. from a future language picker). */
+  /** Switch locale (language picker in Settings, #21). */
   setLocale: (locale: Locale) => void;
 }
 
 export const useI18n = create<I18nState>((set) => ({
-  locale: "en",
-  setLocale: (locale) => set({ locale }),
+  locale: loadLocale(),
+  setLocale: (locale) => {
+    saveLocale(locale);
+    set({ locale });
+  },
 }));
 
 /** Active locale tag, non-reactive — for imperative code paths. */
