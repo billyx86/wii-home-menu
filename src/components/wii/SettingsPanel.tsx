@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Volume2, VolumeX, X } from "lucide-react";
 import { LOCALES, t, useI18n, type Locale } from "../../lib/i18n";
 import { getWiiMuted, getWiiVolume, setWiiMuted, setWiiVolume } from "./audio";
+import { useFocusTrap } from "./focusTrap";
 
 type Props = {
   open: boolean;
@@ -15,23 +16,24 @@ type Props = {
 export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose }: Props) {
   const locale = useI18n((s) => s.locale);
   const setLocale = useI18n((s) => s.setLocale);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  // #25: keep focus inside the dialog, close on Escape, and hand focus back
+  // to the opener when it closes (same contract as ChannelModal, #9).
+  // `onClose` arrives as a fresh closure from WiiMenu on every render, and
+  // useFocusTrap re-runs its effect (re-focusing the first control, and
+  // restoring the opener on cleanup) whenever `onEscape` identity changes —
+  // so route it through a ref and expose a stable callback instead.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const handleEscape = useCallback(() => onCloseRef.current(), []);
+  useFocusTrap(open, panelRef, handleEscape);
 
   if (!open) return null;
 
   return (
     <div className="wii-modal-backdrop flex items-end sm:items-center justify-center p-3 sm:p-6" onClick={onClose}>
       <div
+        ref={panelRef}
         className="wii-modal w-full max-w-md"
         role="dialog"
         aria-modal="true"

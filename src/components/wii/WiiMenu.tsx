@@ -20,6 +20,7 @@ import { ChannelTile } from "./ChannelTile";
 import { findChannelById, getSavedMenuState, persistMenuState, subscribeMenuState } from "./menuState";
 import { WiiClock } from "./Clock";
 import { SettingsPanel } from "./SettingsPanel";
+import { useFocusTrap } from "./focusTrap";
 import { WiiPointer } from "./WiiPointer";
 
 const COLS = 4;
@@ -53,6 +54,16 @@ export function WiiMenu() {
   const [booted, setBooted] = useState(false);
   const lastHoverRef = useRef<string | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const sdRef = useRef<HTMLDivElement | null>(null);
+  // #25: the SD-card dialog traps focus like ChannelModal (#9) — Escape
+  // closes it and focus returns to the opener. `playBack` + the state setter
+  // are both stable, so a useCallback keeps the trap's effect from
+  // re-arming on every render (see the SettingsPanel wiring for why).
+  const closeSd = useCallback(() => {
+    playBack();
+    setSdOpen(false);
+  }, []);
+  useFocusTrap(sdOpen, sdRef, closeSd);
   const pageChannels = CHANNEL_PAGES[page] ?? CHANNEL_PAGES[0];
 
   useEffect(() => {
@@ -355,6 +366,7 @@ export function WiiMenu() {
               <button
                 type="button"
                 className="wii-bar-btn"
+                data-testid="sd-card-open"
                 data-active={sdOpen ? "true" : "false"}
                 onClick={() => {
                   playSelect();
@@ -397,16 +409,15 @@ export function WiiMenu() {
       {sdOpen && (
         <div
           className="wii-modal-backdrop flex items-center justify-center p-4"
-          onClick={() => {
-            playBack();
-            setSdOpen(false);
-          }}
+          onClick={closeSd}
         >
           <div
+            ref={sdRef}
             className="wii-modal max-w-sm"
             role="dialog"
             aria-modal="true"
             aria-labelledby="sd-title"
+            data-testid="sd-card-dialog"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 text-center">
@@ -419,10 +430,7 @@ export function WiiMenu() {
                 type="button"
                 className="wii-primary-btn mt-6 w-full"
                 data-testid="sd-card-close"
-                onClick={() => {
-                  playBack();
-                  setSdOpen(false);
-                }}
+                onClick={closeSd}
               >
                 {t("menu.close")}
               </button>
