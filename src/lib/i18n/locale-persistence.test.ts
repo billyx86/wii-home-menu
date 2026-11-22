@@ -80,3 +80,34 @@ describe("locale persistence (#21)", () => {
     expect(() => mod.useI18n.getState().setLocale("en")).not.toThrow();
   });
 });
+
+describe("cross-tab locale synchronization (#30)", () => {
+  it("adopts a sibling tab's locale without writing it back", async () => {
+    const ls = fakeLocalStorage();
+    const handlers = new Map<string, (event: StorageEvent) => void>();
+    const setItem = vi.fn(ls.setItem);
+    vi.resetModules();
+    vi.stubGlobal("window", {
+      localStorage: { ...ls, setItem },
+      addEventListener: (type: string, handler: (event: StorageEvent) => void) => {
+        handlers.set(type, handler);
+      },
+    });
+    const mod = await import("./index");
+    expect(handlers.has("storage")).toBe(true);
+    const storage = handlers.get("storage")!;
+    storage({ key: "wii.locale", newValue: "de" } as StorageEvent);
+    expect(mod.getLocale()).toBe("de");
+    expect(mod.t("nonexistent.key")).toBe("nonexistent.key");
+    expect(setItem).not.toHaveBeenCalled();
+    storage({ key: "unrelated", newValue: "en" } as StorageEvent);
+    expect(mod.getLocale()).toBe("de");
+    storage({ key: "wii.locale", newValue: "unknown" } as StorageEvent);
+    expect(mod.getLocale()).toBe("de");
+    storage({ key: "wii.locale", newValue: null } as StorageEvent);
+    expect(mod.getLocale()).toBe("de");
+    storage({ key: "wii.locale", newValue: "en" } as StorageEvent);
+    expect(mod.getLocale()).toBe("en");
+    expect(setItem).not.toHaveBeenCalled();
+  });
+});

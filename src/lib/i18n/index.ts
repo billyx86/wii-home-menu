@@ -79,6 +79,27 @@ export const useI18n = create<I18nState>((set) => ({
   },
 }));
 
+/**
+ * Receive locale changes from other tabs. Browser storage events are sent to
+ * sibling documents, not the document that performed the write, so updating
+ * the store directly avoids echoing the change back to localStorage.
+ */
+export function subscribeLocale(): () => void {
+  if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
+    return () => {};
+  }
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY || !event.newValue || !(event.newValue in REGISTRY)) return;
+    const locale = event.newValue as Locale;
+    if (useI18n.getState().locale !== locale) useI18n.setState({ locale });
+  };
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
+}
+
+// Keep the module-backed store synchronized even when Settings is closed.
+if (typeof window !== "undefined") subscribeLocale();
+
 /** Active locale tag, non-reactive — for imperative code paths. */
 export function getLocale(): Locale {
   return useI18n.getState().locale;

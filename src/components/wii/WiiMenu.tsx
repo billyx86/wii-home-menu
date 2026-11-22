@@ -13,7 +13,7 @@ import {
   setWiiVolume,
   subscribeAudioPrefs,
 } from "./audio";
-import { t } from "../../lib/i18n";
+import { t, useI18n } from "../../lib/i18n";
 import { CHANNEL_PAGES, PAGE_COUNT, type ChannelDef } from "./channels";
 import { ChannelModal } from "./ChannelModal";
 import { ChannelScreen } from "./ChannelScreen";
@@ -36,6 +36,8 @@ function initialMenuState() {
 }
 
 export function WiiMenu() {
+  // Re-render all Home Menu labels when a sibling tab switches language.
+  useI18n((state) => state.locale);
   // Restore page/focus from localStorage (#10). The stage is still invisible
   // while `booted` is false, so the jump happens off-screen — no flash.
   const [page, setPage] = useState(() => initialMenuState().page);
