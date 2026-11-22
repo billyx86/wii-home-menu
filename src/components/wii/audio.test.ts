@@ -28,6 +28,96 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * AudioContext mock that simulates the browser autoplay policy (issue #24):
+ * a context created without user activation starts "suspended" and
+ * `resume()` always resolves, but the state only actually flips to
+ * "running" once `activation.granted` is true (i.e. the call happened
+ * inside — or after — a real user gesture).
+ */
+function makeAutoplayPolicyCtx() {
+  const activation = { granted: false };
+  const created = { oscillators: 0, gains: 0 };
+  let state: "suspended" | "running" = "suspended";
+  const stateHandlers: Array<() => void> = [];
+  const ctx = {
+    get state() {
+      return state;
+    },
+    currentTime: 0,
+    destination: {},
+    createGain() {
+      created.gains++;
+      return {
+        gain: { value: 0, setValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} },
+        connect: () => {},
+      };
+    },
+    createOscillator() {
+      created.oscillators++;
+      return {
+        type: "",
+        frequency: { setValueAtTime: () => {} },
+        connect: () => {},
+        start: () => {},
+        stop: () => {},
+      };
+    },
+    addEventListener(type: string, fn: () => void) {
+      if (type === "statechange") stateHandlers.push(fn);
+    },
+    removeEventListener(type: string, fn: () => void) {
+      if (type === "statechange") {
+        const i = stateHandlers.indexOf(fn);
+        if (i >= 0) stateHandlers.splice(i, 1);
+      }
+    },
+    resume() {
+      if (activation.granted) {
+        state = "running";
+        for (const h of [...stateHandlers]) h();
+      }
+      // Autoplay policy: without activation the promise resolves but the
+      // context stays suspended.
+      return Promise.resolve();
+    },
+  };
+  // `new AC()` — a classic function returning an object uses it as the
+  // constructed value (arrow functions cannot be constructed).
+  const Ctx = function () {
+    return ctx;
+  };
+  return { Ctx, activation, created, ctx };
+}
+
+function makeWindow(localStorage: unknown, AudioContext: unknown) {
+  const listeners: Record<string, Set<() => void>> = {};
+  return {
+    localStorage,
+    AudioContext,
+    addEventListener: (type: string, fn: () => void) => {
+      (listeners[type] ??= new Set()).add(fn);
+    },
+    removeEventListener: (type: string, fn: () => void) => {
+      listeners[type]?.delete(fn);
+    },
+    // test helpers
+    _dispatch: (type: string) => {
+      for (const fn of [...(listeners[type] ?? [])]) fn();
+    },
+    _has: (type: string) => (listeners[type]?.size ?? 0) > 0,
+    _count: (type: string) => (listeners[type]?.size ?? 0),
+  };
+}
+
+async function importAudioWithWindow(windowStub: Record<string, unknown>) {
+  vi.resetModules();
+  vi.stubGlobal("window", windowStub);
+  return await import("./audio");
+}
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
 describe("audio prefs persistence", () => {
   it("defaults to volume 0.55, unmuted, when nothing is stored", async () => {
     const a = await importAudio(fakeLocalStorage());
@@ -98,5 +188,130 @@ describe("audio prefs persistence", () => {
     expect(a.getWiiVolume()).toBe(0.55);
     expect(() => a.setWiiVolume(0.3)).not.toThrow();
     expect(a.getWiiVolume()).toBe(0.3);
+  });
+});
+
+describe("suspended AudioContext (autoplay policy, issue #24)", () => {
+  it("playBoot without user activation schedules nothing and arms a one-shot flush", async () => {
+    const { Ctx, created } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+
+    a.playBoot();
+
+    expect(created.oscillators).toBe(0);
+    expect(win._has("pointerdown")).toBe(true);
+    expect(win._has("keydown")).toBe(true);
+  });
+
+  it("first pointerdown activates the context: the boot jingle plays exactly once, listeners are removed", async () => {
+    const { Ctx, activation, created } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+
+    a.playBoot();
+    expect(created.oscillators).toBe(0);
+
+    activation.granted = true;
+    win._dispatch("pointerdown");
+    await tick();
+
+    expect(created.oscillators).toBe(4);
+    expect(win._has("pointerdown")).toBe(false);
+    expect(win._has("keydown")).toBe(false);
+
+    // A later gesture must not replay the jingle.
+    win._dispatch("pointerdown");
+    await tick();
+    expect(created.oscillators).toBe(4);
+  });
+
+  it("first keydown also activates the deferred jingle, exactly once", async () => {
+    const { Ctx, activation, created } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+
+    a.playBoot();
+    expect(created.oscillators).toBe(0);
+
+    activation.granted = true;
+    win._dispatch("keydown");
+    await tick();
+
+    expect(created.oscillators).toBe(4);
+    expect(win._has("pointerdown")).toBe(false);
+    expect(win._has("keydown")).toBe(false);
+  });
+
+  it("a context that turns running without a gesture (statechange) plays the jingle once; a later gesture does not replay it", async () => {
+    const { Ctx, activation, created, ctx } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+
+    a.playBoot();
+    expect(created.oscillators).toBe(0);
+
+    // The browser grants audio on its own (e.g. autoplay-allowed profile):
+    // resume settles and statechange fires with no gesture at all.
+    activation.granted = true;
+    void ctx.resume();
+    await tick();
+
+    expect(created.oscillators).toBe(4);
+    expect(win._has("pointerdown")).toBe(false);
+    expect(win._has("keydown")).toBe(false);
+
+    win._dispatch("pointerdown");
+    await tick();
+    expect(created.oscillators).toBe(4);
+  });
+
+  it("playHover before activation schedules nothing and does not arm a flush", async () => {
+    const { Ctx, created } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+
+    a.playHover();
+    await tick();
+
+    expect(created.oscillators).toBe(0);
+    expect(win._has("pointerdown")).toBe(false);
+    expect(win._has("keydown")).toBe(false);
+  });
+
+  it("repeated playBoot calls while suspended arm a single flush", async () => {
+    const { Ctx, activation, created } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+
+    a.playBoot();
+    a.playBoot();
+    expect(win._count("pointerdown")).toBe(1);
+    expect(win._count("keydown")).toBe(1);
+
+    activation.granted = true;
+    win._dispatch("pointerdown");
+    await tick();
+
+    expect(created.oscillators).toBe(4);
+  });
+
+  it("a tone fired inside the activating gesture waits for the resume and still sounds", async () => {
+    const { Ctx, activation, created } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+
+    a.playBoot(); // 400 ms timer, no gesture yet
+    expect(created.oscillators).toBe(0);
+
+    // The user clicks a channel: pointerdown (capture) fires first, and the
+    // click handler's playSelect() runs in the same task — before the
+    // context's state has flipped to "running".
+    activation.granted = true;
+    win._dispatch("pointerdown");
+    a.playSelect(); // 2 tones
+    await tick();
+
+    expect(created.oscillators).toBe(6);
   });
 });

@@ -22,6 +22,20 @@ A polished **fan recreation** of the classic Wii System Menu — soft ambient ch
 - **Remembers where you were** — menu position/focus, audio volume/mute, and the Shop Channel's Wii Points balance + owned titles all persist across reloads via `localStorage`  
 - Responsive layout for desktop and phone  
 
+### UI sounds and the browser autoplay policy
+
+Browsers create the `AudioContext` **suspended** until the visitor makes a
+real gesture (click, keypress — hover doesn't count), and refuse to resume
+it before then. So on a first visit with no prior interaction, the boot
+jingle scheduled at 400 ms cannot play yet: it is **parked** and played
+exactly once on the first click or keypress (or immediately, if the browser
+grants audio without a gesture). Hover/select sounds before that first
+gesture are dropped rather than queued. Manual repro: open a fresh,
+incognito window and click a channel before interacting — the boot jingle
+and the click sound both land on that first interaction, exactly once.
+Covered by the suspended-context scenarios in
+`src/components/wii/audio.test.ts` (issue #24).
+
 ## Screenshots
 
 ### Channel open
