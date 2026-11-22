@@ -1,6 +1,7 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import appCss from "../styles.css?url";
+import { useI18n } from "../lib/i18n";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -20,8 +21,10 @@ export const Route = createRootRoute({
 });
 
 function RootDocument() {
+  //raeading active locale 
+  const { locale } = useI18n();
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale}>
       <head>
         <HeadContent />
       </head>
