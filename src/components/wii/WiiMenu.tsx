@@ -11,6 +11,7 @@ import {
   playSelect,
   setWiiMuted,
   setWiiVolume,
+  subscribeAudioPrefs,
 } from "./audio";
 import { t } from "../../lib/i18n";
 import { CHANNEL_PAGES, PAGE_COUNT, type ChannelDef } from "./channels";
@@ -133,6 +134,18 @@ export function WiiMenu() {
         setSelected(null);
         setRunning(null);
       }
+    });
+  }, []);
+
+  // Cross-tab audio sync (#26): a volume/mute change in another tab writes
+  // `wii.audio` and fires a `storage` event here — adopt the sibling's
+  // volume + mute so the UI (slider, mute toggle) and the live masterGain
+  // follow without a reload. The subscription ignores malformed payloads and
+  // this tab's own writes (see audio.ts).
+  useEffect(() => {
+    return subscribeAudioPrefs((next) => {
+      setVolume(next.volume);
+      setMuted(next.muted);
     });
   }, []);
 

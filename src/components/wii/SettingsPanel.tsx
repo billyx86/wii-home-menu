@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { Volume2, VolumeX, X } from "lucide-react";
 import { LOCALES, t, useI18n, type Locale } from "../../lib/i18n";
-import { getWiiMuted, getWiiVolume, setWiiMuted, setWiiVolume } from "./audio";
+import { getWiiMuted, getWiiVolume } from "./audio";
 import { useFocusTrap } from "./focusTrap";
 
 type Props = {
@@ -62,11 +62,7 @@ export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose 
                 className="wii-bar-btn !min-h-9 !px-3 text-xs"
                 data-testid="settings-mute-toggle"
                 data-active={muted ? "true" : "false"}
-                onClick={() => {
-                  const next = !muted;
-                  setWiiMuted(next);
-                  onMuted(next);
-                }}
+                onClick={() => onMuted(!muted)}
               >
                 {muted ? t("settings.unmute") : t("settings.mute")}
               </button>
@@ -84,12 +80,8 @@ export function SettingsPanel({ open, volume, muted, onVolume, onMuted, onClose 
               data-testid="settings-volume-slider"
               onChange={(e) => {
                 const v = Number(e.target.value) / 100;
-                setWiiVolume(v);
                 onVolume(v);
-                if (muted && v > 0) {
-                  setWiiMuted(false);
-                  onMuted(false);
-                }
+                if (muted && v > 0) onMuted(false);
               }}
             />
           </div>

@@ -22,6 +22,36 @@ A polished **fan recreation** of the classic Wii System Menu — soft ambient ch
 - **Remembers where you were** — menu position/focus, audio volume/mute, and the Shop Channel's Wii Points balance + owned titles all persist across reloads via `localStorage`  
 - Responsive layout for desktop and phone  
 
+### UI sounds and the browser autoplay policy
+
+Browsers create the `AudioContext` **suspended** until the visitor makes a
+real gesture (click, keypress — hover doesn't count), and refuse to resume
+it before then. So on a first visit with no prior interaction, the boot
+jingle scheduled at 400 ms cannot play yet: it is **parked** and played
+exactly once on the first click or keypress (or immediately, if the browser
+grants audio without a gesture). Hover/select sounds before that first
+gesture are dropped rather than queued. Manual repro: open a fresh,
+incognito window and click a channel before interacting — the boot jingle
+and the click sound both land on that first interaction, exactly once.
+Covered by the suspended-context scenarios in
+`src/components/wii/audio.test.ts` (issue #24).
+
+### Settings follow you across tabs
+
+Volume and mute are a single source of truth in `localStorage`
+(`wii.audio`) with a `storage`-event subscription — the same pattern as the
+menu position (`wii.menu`, issue #17) and the Shop Channel balance
+(`wii.shop`). Turning the volume or muting in one tab is heard in the others
+immediately: the sibling's volume/mute is re-applied to the live
+`masterGain`, so a mute in tab A silences tab B without a reload. Each tab
+ignores other storage keys, its own writes (re-entrancy guard), deletions,
+and malformed payloads, so a broken sibling can never clobber a healthy one.
+The Settings panel no longer double-writes: the slider and mute toggle both
+flow through `WiiMenu`'s handlers, so one slider step is exactly one
+`wii.audio` write. Covered by the cross-tab scenarios in
+`src/components/wii/audio.test.ts` and the write-count check in
+`e2e/settings-panel.spec.ts` (issue #26).
+
 ## Screenshots
 
 ### Channel open
