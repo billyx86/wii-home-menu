@@ -37,7 +37,8 @@ afterEach(() => {
  */
 function makeAutoplayPolicyCtx() {
   const activation = { granted: false };
-  const created = { oscillators: 0, gains: 0 };
+  const created = { oscillators: 0, gains: 0 as number };
+  const gainNodes: Array<{ gain: { value: number } }> = [];
   let state: "suspended" | "running" = "suspended";
   const stateHandlers: Array<() => void> = [];
   const ctx = {
@@ -48,10 +49,12 @@ function makeAutoplayPolicyCtx() {
     destination: {},
     createGain() {
       created.gains++;
-      return {
+      const node = {
         gain: { value: 0, setValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} },
         connect: () => {},
       };
+      gainNodes.push(node as { gain: { value: number } });
+      return node;
     },
     createOscillator() {
       created.oscillators++;
@@ -87,11 +90,11 @@ function makeAutoplayPolicyCtx() {
   const Ctx = function () {
     return ctx;
   };
-  return { Ctx, activation, created, ctx };
+  return { Ctx, activation, created, ctx, gainNodes };
 }
 
 function makeWindow(localStorage: unknown, AudioContext: unknown) {
-  const listeners: Record<string, Set<() => void>> = {};
+  const listeners: Record<string, Set<(payload?: unknown) => void>> = {};
   return {
     localStorage,
     AudioContext,
@@ -102,8 +105,8 @@ function makeWindow(localStorage: unknown, AudioContext: unknown) {
       listeners[type]?.delete(fn);
     },
     // test helpers
-    _dispatch: (type: string) => {
-      for (const fn of [...(listeners[type] ?? [])]) fn();
+    _dispatch: (type: string, payload?: unknown) => {
+      for (const fn of [...(listeners[type] ?? [])]) fn(payload as never);
     },
     _has: (type: string) => (listeners[type]?.size ?? 0) > 0,
     _count: (type: string) => (listeners[type]?.size ?? 0),
@@ -313,5 +316,120 @@ describe("suspended AudioContext (autoplay policy, issue #24)", () => {
     await tick();
 
     expect(created.oscillators).toBe(6);
+  });
+});
+
+describe("cross-tab sync (storage event, issue #26)", () => {
+  const AUDIO_KEY = "wii.audio";
+
+  it("parseAudioPrefsValue normalizes a valid payload into clamped state", async () => {
+    const a = await importAudio(fakeLocalStorage());
+    expect(a.parseAudioPrefsValue(JSON.stringify({ volume: 0.2, muted: true }))).toEqual({
+      volume: 0.2,
+      muted: true,
+    });
+    // Out-of-range / missing volume degrades to the clamped / default value.
+    expect(a.parseAudioPrefsValue(JSON.stringify({ volume: 42 }))).toEqual({
+      volume: 1,
+      muted: false,
+    });
+    expect(a.parseAudioPrefsValue(JSON.stringify({ muted: true }))).toEqual({
+      volume: 0.55,
+      muted: true,
+    });
+  });
+
+  it("parseAudioPrefsValue returns null for malformed or wrong-shape input", async () => {
+    const a = await importAudio(fakeLocalStorage());
+    expect(a.parseAudioPrefsValue("{not json")).toBeNull();
+    expect(a.parseAudioPrefsValue("42")).toBeNull();
+    expect(a.parseAudioPrefsValue(JSON.stringify([1, 2, 3]))).toBeNull();
+  });
+
+  it("applyAudioStorageEvent ignores other keys, clears, and this tab's own echo", async () => {
+    const a = await importAudio(fakeLocalStorage());
+    // Another store's write (e.g. wii.menu / wii.shop) must not touch audio.
+    expect(
+      a.applyAudioStorageEvent({ key: "wii.menu", newValue: JSON.stringify({ volume: 0.1 }) }),
+    ).toBeNull();
+    // Another tab deleted the entry — keep our prefs, don't snap to defaults.
+    expect(a.applyAudioStorageEvent({ key: AUDIO_KEY, newValue: null })).toBeNull();
+    // Re-entrancy guard: our own serialized write echoed back is skipped.
+    expect(
+      a.applyAudioStorageEvent(
+        { key: AUDIO_KEY, newValue: JSON.stringify({ volume: 0.3, muted: false }) },
+        { lastOwnWrite: JSON.stringify({ volume: 0.3, muted: false }) },
+      ),
+    ).toBeNull();
+    // A genuine foreign write resolves to clamped state.
+    expect(a.applyAudioStorageEvent({ key: AUDIO_KEY, newValue: JSON.stringify({ volume: 0.7 }) })).toEqual({
+      volume: 0.7,
+      muted: false,
+    });
+    // Malformed foreign write is skipped, never corrupting this tab.
+    expect(a.applyAudioStorageEvent({ key: AUDIO_KEY, newValue: "{nope" })).toBeNull();
+  });
+
+  it("subscribeAudioPrefs re-hydrates module state + masterGain from another tab's write", async () => {
+    const { Ctx, gainNodes } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+
+    // Create the context + master gain (granted, so it runs and the tone lands).
+    a.playHover();
+    await tick();
+    expect(gainNodes.length).toBe(1);
+    expect(gainNodes[0].gain.value).toBeCloseTo(0.55, 5);
+
+    const seen: Array<{ volume: number; muted: boolean }> = [];
+    const unsub = a.subscribeAudioPrefs((s) => seen.push(s));
+
+    // Tab A turns the volume down and mutes: the storage event arrives here.
+    win._dispatch("storage", { key: AUDIO_KEY, newValue: JSON.stringify({ volume: 0.2, muted: true }) });
+
+    expect(seen).toEqual([{ volume: 0.2, muted: true }]);
+    expect(a.getWiiVolume()).toBe(0.2);
+    expect(a.getWiiMuted()).toBe(true);
+    // Live audio follows the sibling tab immediately (muted -> gain 0).
+    expect(gainNodes[0].gain.value).toBe(0);
+
+    // Unsubscribing stops further updates.
+    unsub();
+    win._dispatch("storage", { key: AUDIO_KEY, newValue: JSON.stringify({ volume: 0.9, muted: false }) });
+    expect(seen).toEqual([{ volume: 0.2, muted: true }]);
+    expect(a.getWiiVolume()).toBe(0.2);
+  });
+
+  it("subscribeAudioPrefs ignores other keys and this tab's own echoed write", async () => {
+    const { Ctx, gainNodes } = makeAutoplayPolicyCtx();
+    const win = makeWindow(fakeLocalStorage(), Ctx) as ReturnType<typeof makeWindow>;
+    const a = await importAudioWithWindow(win);
+    a.playHover();
+    await tick();
+
+    let seen = 0;
+    a.subscribeAudioPrefs(() => seen++);
+
+    // wii.menu write from the same tab — must be ignored (wrong key).
+    win._dispatch("storage", { key: "wii.menu", newValue: "{}" });
+    expect(seen).toBe(0);
+
+    // This tab's own write, then that same serialized value arriving back as
+    // a storage event — the re-entrancy guard must skip it (no double-apply).
+    a.setWiiVolume(0.3);
+    const own = JSON.stringify({ volume: 0.3, muted: false });
+    expect(a.getWiiVolume()).toBe(0.3);
+    win._dispatch("storage", { key: "wii.audio", newValue: own });
+    expect(seen).toBe(0);
+    expect(gainNodes[0].gain.value).toBeCloseTo(0.3, 5);
+  });
+
+  it("savePrefs records lastOwnWrite so an identical foreign write is not re-applied", async () => {
+    const ls = fakeLocalStorage();
+    const a = await importAudioWithWindow(makeWindow(ls, makeAutoplayPolicyCtx().Ctx) as ReturnType<typeof makeWindow>);
+    a.setWiiVolume(0.4);
+    // The serialized form now saved is what lastOwnWrite guards against.
+    const own = ls.getItem(AUDIO_KEY);
+    expect(a.applyAudioStorageEvent({ key: AUDIO_KEY, newValue: own }, { lastOwnWrite: own })).toBeNull();
   });
 });

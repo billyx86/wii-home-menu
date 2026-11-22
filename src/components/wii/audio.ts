@@ -20,13 +20,67 @@ function loadPrefs(): AudioPrefs {
   }
 }
 
+/** Last serialized value this tab wrote — the re-entrancy guard for
+ * applyAudioStorageEvent (#26): a write we made must not re-apply onto us. */
+let lastOwnWrite: string | null = null;
+
 function savePrefs(nextVolume: number, nextMuted: boolean): void {
   if (typeof window === "undefined") return;
+  const serialized = JSON.stringify({ volume: nextVolume, muted: nextMuted });
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume: nextVolume, muted: nextMuted }));
+    window.localStorage.setItem(STORAGE_KEY, serialized);
+    lastOwnWrite = serialized;
   } catch {
     // Storage unavailable (private mode etc.) — settings stay in-memory only.
   }
+}
+
+/** The slice of the browser `storage` event this module cares about. */
+export interface StorageEventLike {
+  key: string | null;
+  newValue: string | null;
+}
+
+/** Resolved audio prefs after clamping + defaults — what sibling tabs hold. */
+export interface ResolvedAudioPrefs {
+  volume: number;
+  muted: boolean;
+}
+
+/**
+ * Parse + normalize a serialized `wii.audio` payload into resolved prefs.
+ * Returns null on malformed, wrong-shape, or non-object input so a corrupt
+ * sibling tab can never clobber a healthy one.
+ */
+export function parseAudioPrefsValue(raw: string | null): ResolvedAudioPrefs | null {
+  if (typeof raw !== "string") return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const obj = parsed as AudioPrefs;
+  const rawVolume = Number(obj.volume);
+  const volume = Number.isFinite(rawVolume) ? Math.max(0, Math.min(1, rawVolume)) : 0.55;
+  return { volume, muted: obj.muted === true };
+}
+
+/**
+ * Decide whether a cross-tab `storage` event should update this tab's audio
+ * prefs (#26). Returns resolved prefs, or null when the event must be
+ * ignored: another key, a deletion (newValue null), this tab's own write
+ * echoing back (re-entrancy guard), or a malformed payload.
+ */
+export function applyAudioStorageEvent(
+  event: StorageEventLike,
+  opts?: { lastOwnWrite?: string | null },
+): ResolvedAudioPrefs | null {
+  if (event.key !== STORAGE_KEY) return null;
+  if (event.newValue === null) return null;
+  if (opts?.lastOwnWrite != null && event.newValue === opts.lastOwnWrite) return null;
+  return parseAudioPrefsValue(event.newValue);
 }
 
 let ctx: AudioContext | null = null;
@@ -139,6 +193,27 @@ export function getWiiVolume() {
 
 export function getWiiMuted() {
   return muted;
+}
+
+/**
+ * Re-hydrate audio prefs when another tab writes `wii.audio` (#26): a
+ * volume/mute change in one tab is heard in the others without a reload.
+ * Re-applies the sibling's volume + mute onto the live masterGain (when the
+ * context exists) so a sibling muting you is instant, not next-tone.
+ * Returns an unsubscribe function; no-op when `window` is unavailable.
+ */
+export function subscribeAudioPrefs(listener: (prefs: ResolvedAudioPrefs) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    const next = applyAudioStorageEvent(event, { lastOwnWrite });
+    if (!next) return;
+    volume = next.volume;
+    muted = next.muted;
+    if (masterGain) masterGain.gain.value = muted ? 0 : volume;
+    listener(next);
+  };
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
 }
 
 function tone(

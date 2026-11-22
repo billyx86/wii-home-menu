@@ -112,6 +112,37 @@ test.describe("settings panel (#22)", () => {
     await expect(page.locator(VOLUME_SLIDER)).toHaveValue("56");
   });
 
+  test("moving the volume slider writes wii.audio exactly once per step (#26)", async ({ page }) => {
+    // Count setItem calls against the audio key from inside the page. The
+    // dev server's module is already loaded, so patch Storage.prototype
+    // before navigation and read a global counter afterwards.
+    await page.addInitScript(() => {
+      const orig = Storage.prototype.setItem;
+      (window as unknown as Record<string, number>).__audioWrites = 0;
+      Storage.prototype.setItem = function (k: string, v: string) {
+        if (k === "wii.audio") (window as unknown as Record<string, number>).__audioWrites++;
+        return orig.call(this, k, v);
+      };
+    });
+    await gotoMenu(page);
+    await page.locator(SETTINGS_OPEN).click();
+    const slider = page.locator(VOLUME_SLIDER);
+    await expect(slider).toHaveValue("55");
+
+    await slider.focus();
+    await page.keyboard.press("ArrowRight"); // 55 -> 56
+    await expect(slider).toHaveValue("56");
+    const prefs = await readAudioPrefs(page);
+    expect(prefs.volume).toBeCloseTo(0.56, 5);
+
+    // One source of truth (WiiMenu.onVolume -> setWiiVolume) must mean one
+    // persistence write, not the old SettingsPanel + WiiMenu double write.
+    const writes = await page.evaluate(
+      () => (window as unknown as Record<string, number>).__audioWrites,
+    );
+    expect(writes).toBe(1);
+  });
+
   test("Done closes the panel and returns focus to the menu grid", async ({ page }) => {
     await gotoMenu(page);
     await page.locator(SETTINGS_OPEN).click();
