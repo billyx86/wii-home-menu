@@ -38,6 +38,14 @@ export const LOCALES = Object.keys(REGISTRY) as Locale[];
 /** localStorage key for the persisted locale (#21). */
 const STORAGE_KEY = "wii.locale";
 
+/** Last value this tab wrote — re-entrancy guard for applyLocaleStorageEvent (#30). */
+let lastOwnWrite: string | null = null;
+
+function parseLocale(raw: string | null): Locale | null {
+  if (typeof raw !== "string") return null;
+  return Object.prototype.hasOwnProperty.call(REGISTRY, raw) ? (raw as Locale) : null;
+}
+
 /**
  * Hydrate the active locale from localStorage at module load, so a choice
  * made in the language picker survives a reload (#21). Mirrors the
@@ -47,8 +55,7 @@ const STORAGE_KEY = "wii.locale";
 function loadLocale(): Locale {
   if (typeof window === "undefined") return "en";
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw && raw in REGISTRY) return raw as Locale;
+    return parseLocale(window.localStorage.getItem(STORAGE_KEY)) ?? "en";
   } catch {
     // Unreadable storage (private mode etc.) — default locale.
   }
@@ -59,9 +66,32 @@ function saveLocale(locale: Locale): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, locale);
+    lastOwnWrite = locale;
   } catch {
     // Storage unavailable (private mode etc.) — choice stays in-memory only.
   }
+}
+
+/** The slice of the browser `storage` event this module cares about. */
+export interface LocaleStorageEventLike {
+  key: string | null;
+  newValue: string | null;
+}
+
+/**
+ * Decide whether a cross-tab `storage` event should update this tab's active
+ * locale (#30). Returns the validated locale, or null when the event must be
+ * ignored: another key, a deletion (newValue null), this tab's own write
+ * echoing back (re-entrancy guard), or a malformed/unregistered tag.
+ */
+export function applyLocaleStorageEvent(
+  event: LocaleStorageEventLike,
+  opts?: { lastOwnWrite?: string | null },
+): Locale | null {
+  if (event.key !== STORAGE_KEY) return null;
+  if (event.newValue === null) return null;
+  if (opts?.lastOwnWrite != null && event.newValue === opts.lastOwnWrite) return null;
+  return parseLocale(event.newValue);
 }
 
 interface I18nState {
@@ -78,6 +108,37 @@ export const useI18n = create<I18nState>((set) => ({
     set({ locale });
   },
 }));
+
+/**
+ * Sync the active locale when another tab writes `wii.locale` (#30): a
+ * language change in one tab updates every other open tab without a reload.
+ * Updates the zustand store directly without re-writing localStorage (the
+ * sibling tab already persisted the key). Returns an unsubscribe function;
+ * no-op when `window` is unavailable.
+ */
+export function subscribeLocale(listener?: (locale: Locale) => void): () => void {
+  if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
+    return () => {};
+  }
+  const onStorage = (event: StorageEvent) => {
+    const next = applyLocaleStorageEvent(event, { lastOwnWrite });
+    if (!next) return;
+    lastOwnWrite = null;
+    if (useI18n.getState().locale !== next) {
+      useI18n.setState({ locale: next });
+    }
+    listener?.(next);
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    if (typeof window.removeEventListener === "function") {
+      window.removeEventListener("storage", onStorage);
+    }
+  };
+}
+
+// Register once at module load so cross-tab locale changes update every open tab (#30).
+subscribeLocale();
 
 /** Active locale tag, non-reactive — for imperative code paths. */
 export function getLocale(): Locale {
