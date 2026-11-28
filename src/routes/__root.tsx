@@ -3,6 +3,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { AuthProvider } from "@/lib/auth/provider";
 import { useI18n } from "@/lib/i18n";
 import appCss from "../styles.css?url";
+import { useI18n } from "../lib/i18n";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -22,15 +23,10 @@ export const Route = createRootRoute({
 });
 
 function RootDocument() {
-  const locale = useI18n((s) => s.locale);
-  useEffect(() => {
-    // React does not patch attributes on <html> during hydration, so reconcile
-    // the persisted client locale onto the DOM element once hydrated.
-    document.documentElement.lang = locale;
-  }, [locale]);
+  //raeading active locale 
+  const { locale } = useI18n();
   return (
-    // Keep suppressHydrationWarning: SSR never knows the persisted client locale, so initial hydration may differ.
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale}>
       <head>
         <HeadContent />
       </head>
