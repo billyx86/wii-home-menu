@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
+import { useI18n } from "@/lib/i18n";
 import appCss from "../styles.css?url";
 import { useI18n } from "../lib/i18n";
 

@@ -197,9 +197,10 @@ test.describe("language picker (#21)", () => {
 
     await page.reload();
     await menuReady(page);
-    // The menu itself is now rendered in German — the select inside the
-    // re-opened panel still reports the persisted choice (locale-proof
-    // assertion: value, not copy).
+    // The menu itself is now rendered in German — `<html lang>` reflects the
+    // persisted locale (#31), and the select inside the re-opened panel still
+    // reports the persisted choice (locale-proof assertion: value, not copy).
+    await expect(page.locator("html")).toHaveAttribute("lang", "de");
     await page.locator(SETTINGS_OPEN).click();
     await expect(page.locator(LOCALE_SELECT)).toHaveValue("de");
     await page.locator(DONE).click();

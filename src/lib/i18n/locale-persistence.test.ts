@@ -29,6 +29,28 @@ async function importI18n(localStorage: unknown) {
   return mod;
 }
 
+function makeWindow(localStorage: unknown) {
+  const listeners: Record<string, Set<(payload?: unknown) => void>> = {};
+  return {
+    localStorage,
+    addEventListener: (type: string, fn: (payload?: unknown) => void) => {
+      (listeners[type] ??= new Set()).add(fn);
+    },
+    removeEventListener: (type: string, fn: (payload?: unknown) => void) => {
+      listeners[type]?.delete(fn);
+    },
+    _dispatch: (type: string, payload?: unknown) => {
+      for (const fn of [...(listeners[type] ?? [])]) fn(payload);
+    },
+  };
+}
+
+async function importI18nWithWindow(windowStub: Record<string, unknown>) {
+  vi.resetModules();
+  vi.stubGlobal("window", windowStub);
+  return await import("./index");
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -78,5 +100,86 @@ describe("locale persistence (#21)", () => {
     const mod = await importI18n(throwing);
     expect(mod.getLocale()).toBe("en");
     expect(() => mod.useI18n.getState().setLocale("en")).not.toThrow();
+  });
+});
+
+describe("cross-tab locale sync (#30)", () => {
+  it("updates in-memory locale on a sibling storage event without re-writing localStorage", async () => {
+    const ls = fakeLocalStorage();
+    const setItem = vi.spyOn(ls, "setItem");
+    const win = makeWindow(ls);
+    const mod = await importI18nWithWindow(win);
+
+    expect(mod.getLocale()).toBe("en");
+
+    win._dispatch("storage", { key: "wii.locale", newValue: "de" });
+
+    expect(mod.getLocale()).toBe("de");
+    expect(mod.useI18n.getState().locale).toBe("de");
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
+  it("ignores own writes (re-entrancy guard)", async () => {
+    const ls = fakeLocalStorage();
+    const win = makeWindow(ls);
+    const mod = await importI18nWithWindow(win);
+
+    const seen: string[] = [];
+    const unsub = mod.subscribeLocale((locale) => seen.push(locale));
+
+    mod.useI18n.getState().setLocale("de");
+    expect(mod.getLocale()).toBe("de");
+
+    const storeListener = vi.fn();
+    const unsubStore = mod.useI18n.subscribe(storeListener);
+
+    win._dispatch("storage", { key: "wii.locale", newValue: "de" });
+
+    expect(seen).toEqual([]);
+    expect(storeListener).not.toHaveBeenCalled();
+    expect(
+      mod.applyLocaleStorageEvent(
+        { key: "wii.locale", newValue: "de" },
+        { lastOwnWrite: "de" },
+      ),
+    ).toBeNull();
+
+    unsubStore();
+    unsub();
+  });
+
+  it("ignores storage events for other keys", async () => {
+    const win = makeWindow(fakeLocalStorage());
+    const mod = await importI18nWithWindow(win);
+
+    const seen: string[] = [];
+    const unsub = mod.subscribeLocale((locale) => seen.push(locale));
+
+    win._dispatch("storage", { key: "wii.audio", newValue: "de" });
+    win._dispatch("storage", { key: "wii.menu", newValue: "{}" });
+
+    expect(mod.getLocale()).toBe("en");
+    expect(seen).toEqual([]);
+
+    unsub();
+  });
+
+  it("ignores malformed or unregistered values without crashing", async () => {
+    const win = makeWindow(fakeLocalStorage());
+    const mod = await importI18nWithWindow(win);
+
+    const seen: string[] = [];
+    const unsub = mod.subscribeLocale((locale) => seen.push(locale));
+
+    for (const bad of ["xx", "", null, "{not valid", "toString"]) {
+      expect(() =>
+        win._dispatch("storage", { key: "wii.locale", newValue: bad }),
+      ).not.toThrow();
+    }
+
+    expect(mod.getLocale()).toBe("en");
+    expect(seen).toEqual([]);
+
+    unsub();
   });
 });
